@@ -1,0 +1,21 @@
+name: Guacd all vulns Snyk scan
+
+on:
+  push:
+    paths:
+      - 'guacd/**'
+      - '.github/workflows/guacd-full-image-scan.yaml'
+
+jobs:
+  full-snyk-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Snyk to check Guacd image for all vulnerabilities
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          image: guacamole/guacd
+          args: --org=dwp-dataworks --file=guacd/Dockerfile

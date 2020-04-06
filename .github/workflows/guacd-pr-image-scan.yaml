@@ -1,0 +1,20 @@
+name: Guacd High vulns Snyk scan
+
+on:
+  push:
+    paths:
+      - 'guacd/**'
+      - '.github/workflows/guacd-pr-image-scan.yaml'
+
+jobs:
+  high-only-snyk-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Snyk to check Guacd image for high vulnerabilities
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: guacamole/guacd
+          args: --file=guacd/Dockerfile --severity-threshold=high --exclude-base-image-vulns --org=dwp-dataworks
