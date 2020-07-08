@@ -6,3 +6,59 @@ ignore:
     - '*':
         reason: Required for GuacD jbig2 compression, cannot be removed.
         expires: 2020-08-11T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572607:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572608:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572614:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572626:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572635:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572651:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572654:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572675:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572680:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572684:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572795:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572792:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572797:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572802:
+    - '*':
+        reason: Required for VNC, cannot be removed.
+        expires: 2020-10-07T00:00:00.000Z
