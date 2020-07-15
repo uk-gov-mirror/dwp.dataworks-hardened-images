@@ -5,8 +5,6 @@ on:
     branches:
       - master
 
-env:
-  IMAGE_NAME: dwpdigital/guacd
 
 jobs:
   get-publish-version:
@@ -41,6 +39,10 @@ jobs:
   publish-docker:
     runs-on: ubuntu-latest
     needs: [get-publish-version]
+    strategy:
+      fail-fast: true
+      matrix:
+        image: [prom-pushgateway, guacd]
     steps:
       - name: Get release version
         id: get_version
@@ -49,16 +51,20 @@ jobs:
       - name: Publish to DockerHub
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
-          name: ${{ env.IMAGE_NAME }}
+          name: dwpdigital/${{ matrix.image }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           tags: "latest, ${{ needs.get-publish-version.outputs.publish-version }}"
           tag_semver: true
-          dockerfile: guacd/Dockerfile
+          dockerfile: ${{ matrix.image }}/Dockerfile
 
-  snyk-monitor:
+  snyk-monitor-guacd:
     runs-on: ubuntu-latest
     needs: publish-docker
+    strategy:
+      fail-fast: true
+      matrix:
+        image: [prom-pushgateway, guacd]
     steps:
       - uses: actions/checkout@v2
       - name: Run Snyk monitoring
@@ -67,5 +73,5 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          image: ${{ env.IMAGE_NAME }}
-          args: --file=guacd/Dockerfile --org=dwp-dataworks
+          image: dwpdigital/${{ matrix.image }}
+          args: --file=${{ matrix.image }}/Dockerfile --org=dwp-dataworks
