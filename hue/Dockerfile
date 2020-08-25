@@ -29,7 +29,7 @@ FROM alpine:3.12
 COPY --from=builder /usr/share/hue /usr/share/hue
 
 COPY --from=builder /tmp/hue/tools/docker/hue/conf3 /usr/share/hue/desktop/conf
-COPY --from=builder /tmp/hue/tools/docker/hue/startup.sh /usr/share/hue
+COPY --from=builder startup.sh /usr/share/hue
 
 RUN addgroup hue && \
     adduser --system --uid 1001 --no-create-home --ingroup hue hue && \
