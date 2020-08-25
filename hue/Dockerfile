@@ -1,12 +1,11 @@
-FROM alpine:latest AS builder
+FROM alpine:3.12 AS builder
 
 RUN apk update && \
     apk upgrade && \
     apk add git bash
 
-
 WORKDIR /tmp
-RUN git clone https://github.com/cloudera/hue.git
+RUN git clone --depth 1 --branch release-4.7.1 https://github.com/cloudera/hue.git
 
 WORKDIR /tmp/hue
 
@@ -25,7 +24,7 @@ RUN rm -rf desktop/core/ext-py
 RUN PREFIX=/usr/share make install
 
 
-FROM alpine:latest
+FROM alpine:3.12
 
 COPY --from=builder /usr/share/hue /usr/share/hue
 
