@@ -10,6 +10,8 @@ RUN git clone --depth 1 --branch release-4.7.1 https://github.com/cloudera/hue.g
 WORKDIR /tmp/hue
 
 ENV PYTHON_VER=python3.8
+ARG S3FS_VERSION=v1.86
+ENV MNT_POINT /usr/share/hue/s3fs
 
 RUN apk add rsync make g++ python3=3.8.5-r0 python3-dev=3.8.5-r0 \
         mariadb mariadb-dev	libffi-dev krb5-dev openldap-dev \
@@ -29,13 +31,27 @@ FROM alpine:3.12
 COPY --from=builder /usr/share/hue /usr/share/hue
 
 COPY --from=builder /tmp/hue/tools/docker/hue/conf3 /usr/share/hue/desktop/conf
-COPY --from=builder startup.sh /usr/share/hue
+COPY hue.ini /usr/share/hue/desktop/conf
+COPY startup.sh /usr/share/hue
 
 RUN addgroup hue && \
     adduser --system --uid 1001 --no-create-home --ingroup hue hue && \
-    chown -R hue /usr/share/hue
+    chown -R hue /usr/share/hue && \
+    chmod a+x /usr/share/hue/startup.sh
 
-RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt
+RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt fuse alpine-sdk automake autoconf libxml2-dev fuse-dev curl-dev git; \
+    git clone https://github.com/s3fs-fuse/s3fs-fuse.git; \
+    cd s3fs-fuse; \
+    git checkout tags/${S3FS_VERSION}; \
+    ./autogen.sh; \
+    ./configure --prefix=/usr; \
+    make; \
+    make install; \
+    make clean; \
+    rm -rf /var/cache/apk/*; \
+    apk del git automake autoconf;
+
+RUN mkdir -p $MNT_POINT
 
 # Install database connectors e.g.:
 # RUN ./build/env/bin/pip install git+https://github.com/gethue/PyHive
