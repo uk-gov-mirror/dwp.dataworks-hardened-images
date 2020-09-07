@@ -5,10 +5,10 @@ on:
     branches:
       - master
     paths:
-    - 'azkaban-executor/**'
+    - 'guacd/**'
 
 env:
-  IMAGE_NAME: dwpdigital/azkaban-executor
+  IMAGE_NAME: dwpdigital/guacd
 
 jobs:
   get-publish-version:
@@ -57,8 +57,8 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           tags: "latest, ${{ needs.get-publish-version.outputs.publish-version }}"
           tag_semver: true
-          dockerfile: azkaban-executor/Dockerfile
-          context: azkaban-executor
+          dockerfile: guacd/Dockerfile
+          context: guacd
 
   snyk-monitor:
     runs-on: ubuntu-latest
@@ -72,4 +72,4 @@ jobs:
         with:
           command: monitor
           image: ${{ env.IMAGE_NAME }}
-          args: --file=azkaban-executor/Dockerfile --org=dwp-dataworks
+          args: --file=guacd/Dockerfile --org=dwp-dataworks
