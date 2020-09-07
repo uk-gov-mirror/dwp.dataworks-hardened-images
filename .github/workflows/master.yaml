@@ -57,6 +57,7 @@ jobs:
           tags: "latest, ${{ needs.get-publish-version.outputs.publish-version }}"
           tag_semver: true
           dockerfile: ${{ matrix.image }}/Dockerfile
+          context: ${{ matrix.image }}
 
   snyk-monitor:
     runs-on: ubuntu-latest
