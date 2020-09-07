@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [prom-pushgateway, guacd, hue]
+        image: [prom-pushgateway, guacd, hue, azkaban-executor, azkaban-webserver]
     steps:
       - name: Get release version
         id: get_version
@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [prom-pushgateway, guacd, hue]
+        image: [prom-pushgateway, guacd, hue, azkaban-executor, azkaban-webserver]
     steps:
       - uses: actions/checkout@v2
       - name: Run Snyk monitoring

@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        image: [prom-pushgateway, guacd, hue]
+        image: [prom-pushgateway, guacd, hue, azkaban-executor, azkaban-webserver]
     steps:
       - uses: actions/checkout@v2
       - name: Build Docker image
