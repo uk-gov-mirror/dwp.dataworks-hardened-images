@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-echo "INFO: Checking container configuration..."
+echo "INFO: Checking container configuration...."
 if [ -z "${AZKABAN_CONFIG_S3_BUCKET}" -o -z "${AZKABAN_CONFIG_S3_PREFIX}" ]; then
   echo "ERROR: AZKABAN_CONFIG_S3_BUCKET and AZKABAN_CONFIG_S3_PREFIX environment variables must be provided"
   exit 1
