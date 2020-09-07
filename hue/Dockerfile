@@ -35,11 +35,11 @@ COPY hue.ini /usr/share/hue/desktop/conf
 COPY startup.sh /usr/share/hue
 
 RUN addgroup hue && \
-    adduser --system --uid 1001 --no-create-home --ingroup hue hue && \
+    adduser --system --uid 1001 --no-create-home --ingroup hue -s /bin/sh hue && \
     chown -R hue /usr/share/hue && \
     chmod a+x /usr/share/hue/startup.sh
 
-RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt fuse alpine-sdk automake autoconf libxml2-dev fuse-dev curl-dev git; \
+RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt fuse alpine-sdk automake autoconf libxml2-dev fuse-dev curl-dev git py-pip linux-pam; \
     git clone https://github.com/s3fs-fuse/s3fs-fuse.git; \
     cd s3fs-fuse; \
     git checkout tags/${S3FS_VERSION}; \
@@ -51,14 +51,16 @@ RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt fuse alpine-sdk auto
     rm -rf /var/cache/apk/*; \
     apk del git automake autoconf;
 
-RUN mkdir -p $MNT_POINT
+RUN mkdir /usr/share/hue/s3fs
 
 # Install database connectors e.g.:
-# RUN ./build/env/bin/pip install git+https://github.com/gethue/PyHive
+# RUN /usr/share/hue/build/env/bin/pip install simplepam
+# RUN /usr/share/hue/build/env/bin/pip install pam
+RUN /usr/share/hue/build/env/bin/pip install python-pam
 
 WORKDIR /usr/share/hue
 
-USER hue
+USER root
 
 EXPOSE 8888
 
