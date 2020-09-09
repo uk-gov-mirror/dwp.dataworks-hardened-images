@@ -35,7 +35,7 @@ RUN addgroup hue && \
     adduser --system --uid 1001 --no-create-home --ingroup hue hue && \
     chown -R hue /usr/share/hue
 
-RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt
+RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt gettext
 
 # Install database connectors e.g.:
 # RUN ./build/env/bin/pip install git+https://github.com/gethue/PyHive
@@ -43,6 +43,9 @@ RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt
 WORKDIR /usr/share/hue
 
 USER hue
+
+COPY hue-overrides.ini /tmp/
+COPY startup.sh ./startup.sh
 
 EXPOSE 8888
 
