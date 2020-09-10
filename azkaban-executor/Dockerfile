@@ -21,6 +21,7 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
     aws-cli && \
     tar -C /tmp -zoxf /tmp/azkaban-exec-server.tar.gz && \
     mv /tmp/azkaban-exec-server-0.1.0-SNAPSHOT /azkaban-exec-server && \
+    mkdir -p /azkaban-exec-server/plugins/jobtypes && \
     chown -R nobody:nogroup /azkaban-exec-server && \
     chmod 755 /bin/entrypoint.sh
 

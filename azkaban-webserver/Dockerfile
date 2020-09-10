@@ -25,6 +25,7 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
     tar -C /tmp -zoxf /tmp/azkaban-web-server.tar.gz && \
     tar -C /tmp -zoxf /tmp/azkaban-db.tar.gz && \
     mv /tmp/azkaban-web-server-0.1.0-SNAPSHOT /azkaban-web-server && \
+    mkdir -p /azkaban-exec-server/plugins/jobtypes && \
     mv /tmp/azkaban-db-0.1.0-SNAPSHOT /azkaban-db && \
     chown -R nobody:nogroup /azkaban-web-server && \
     chmod 755 /bin/entrypoint.sh

@@ -48,6 +48,7 @@ echo "INFO: Copying azkaban exec-server configuration file(s) from ${S3_URI} to 
 aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-exec-server/conf
 mv /azkaban-exec-server/conf/start-exec.sh /azkaban-exec-server/bin/start-exec.sh
 mv /azkaban-exec-server/conf/internal-start-executor.sh /azkaban-exec-server/bin/internal/internal-start-executor.sh
+mv /azkaban-exec-server/conf/commonprivate.properties /azkaban-exec-server/plugins/jobtypes/commonprivate.properties
 chmod +x /azkaban-exec-server/bin/start-exec.sh
 chmod +x /azkaban-exec-server/bin/internal/internal-start-executor.sh
 
