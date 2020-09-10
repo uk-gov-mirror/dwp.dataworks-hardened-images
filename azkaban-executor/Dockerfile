@@ -18,7 +18,8 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
     apk upgrade --update-cache --available && \
     apk add --update --no-cache \
     bash \
-    aws-cli && \
+    aws-cli \
+    jq && \
     tar -C /tmp -zoxf /tmp/azkaban-exec-server.tar.gz && \
     mv /tmp/azkaban-exec-server-0.1.0-SNAPSHOT /azkaban-exec-server && \
     mkdir -p /azkaban-exec-server/plugins/jobtypes && \

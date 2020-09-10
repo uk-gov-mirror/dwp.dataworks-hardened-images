@@ -62,3 +62,7 @@ ignore:
     - '*':
         reason: Required for VNC, cannot be removed.
         expires: 2020-10-07T00:00:00.000Z
+  SNYK-ALPINE39-JQ-338867:
+    - '*':
+        reason: False positive, due to Snyk misunderstanding version numbers.
+        expires: 2030-10-07T00:00:00.000Z

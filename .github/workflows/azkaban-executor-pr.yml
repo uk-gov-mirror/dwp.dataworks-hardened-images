@@ -22,4 +22,4 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: ${{ env.IMAGE_NAME }}
-          args: --file=azkaban-executor/Dockerfile --severity-threshold=high --exclude-base-image-vulns --org=dwp-dataworks
+          args: --file=azkaban-executor/Dockerfile --policy-path=./.snyk --severity-threshold=high --exclude-base-image-vulns --org=dwp-dataworks
