@@ -1,0 +1,116 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.13.5
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  SNYK-DEBIAN10-GHOSTSCRIPT-598429:
+    - '*':
+        reason: latest version on unstable branch of debian packages - users don't have access to internet and therefore cannot download PDFs which are the source of the vulnerability
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBXML2-609787:
+    - '*':
+        reason: cannot access XML from internet so is not currently a vulnerability that is applicable/exploitable
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBJPEGTURBO-571504:
+    - '*':
+        reason: no internet access to download malformed PPM input file that allows exploitation of vulnerability
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572684:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572675:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572654:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572651:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572635:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572626:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572614:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-572607:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-LIBVNCSERVER-574795:
+    - '*':
+        reason: libvncserver relies on libjbig2dec0 0.18 or above currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-PERL-570802:
+    - '*':
+        reason: depends on libc6>=2.29 which depends on libgcc-s1 and libcrypt1 but niether are installable on the Debian version being used
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-OPENJPEG2-574801:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-JBIG2DEC-567554:
+    - '*':
+        reason: introduced by base image, fixed in libjbig2dec0 0.18 currently available only on Debian unstable branch
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-GNUTLS28-609778:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-570229:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-570236:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-572984:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-572995:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-573007:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-573009:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-573033:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-573040:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-573042:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-573043:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FREERDP2-573048:
+    - '*':
+        reason: introduced by base image, cannot be fixed
+        expires: 2020-15-12T00:00:00.000Z
+  SNYK-DEBIAN10-FFMPEG-473146:
+    - '*':
+        reason:  Depends: libmfx1 (>= 18.4.0) but it is not installable on Debian
+        expires: 2020-15-12T00:00:00.000Z
