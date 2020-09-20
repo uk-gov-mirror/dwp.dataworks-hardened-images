@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+}
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://jitpack.io"
+    }
+}
+
+configurations {
+    extraLibs
+}
+
+dependencies {
+    compileOnly group: 'com.github.azkaban', name: 'azkaban', version: '3.81.0'
+    compile group: 'com.auth0', name: 'java-jwt', version: '3.10.0'
+    compile group: 'com.auth0', name: 'jwks-rsa', version: '0.11.0'
+    extraLibs group: 'com.auth0', name: 'java-jwt', version: '3.10.0'
+    extraLibs group: 'com.auth0', name: 'jwks-rsa', version: '0.11.0'
+}
+
+jar {
+    from {
+        configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
