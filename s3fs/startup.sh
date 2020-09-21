@@ -12,7 +12,7 @@ mkdir -p /mnt/tmp
     -o url=https://s3.amazonaws.com \
     -o use_sse=kmsid:${KMS_HOME}
 
-chmod -R a-r /mnt/tmp/home/${USER} # || true Needed as this will fail if there are some files encrypted with a different KMS key
+chmod -R a-r /mnt/tmp/home/${USER} || true # || true Needed as this will fail if there are some files encrypted with a different KMS key
 
 fusermount -u /mnt/tmp
 
