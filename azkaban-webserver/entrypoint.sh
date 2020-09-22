@@ -44,6 +44,11 @@ else
   echo "INFO: Using attached IAM roles/instance profiles to authenticate with S3 as no AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY have been provided"
 fi
 
+if [ -n "$KEYSTORE_DATA" ]; then
+  echo $KEYSTORE_DATA | base64 -d > /store.jwk
+  export KEYSTORE_URL='file:////store.jwk'
+fi
+
 echo "INFO: Copying azkaban web-server configuration file(s) from ${S3_URI} to /azkaban-web-server/conf..."
 aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-web-server/conf
 mv /azkaban-web-server/conf/start-web.sh /azkaban-web-server/bin/start-web.sh

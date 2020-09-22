@@ -269,9 +269,8 @@ public class CognitoUserManager implements UserManager {
   private User getCognitoUser(final String token) throws UserManagerException {
     DecodedJWT decodedToken = null;
     try {
-      JwkProvider provider = new UrlJwkProvider( new URL(System.getenv("PROVIDER_URL")));
+      JwkProvider provider = new UrlJwkProvider( new URL(System.getenv("KEYSTORE_URL")));
       JwkProvider cognito = new GuavaCachedJwkProvider(provider);
-      String secretKey = retrieveStore();
       decodedToken = JWT.decode(token);
       Jwk algo = cognito.get(decodedToken.getKeyId());
       Algorithm algorithm;
@@ -297,10 +296,6 @@ public class CognitoUserManager implements UserManager {
     User user = null;
     user = new User(claims.get("cognito:username").asString());
     return user;
-  }
-
-  private String retrieveStore() {
-    return "{ \"kty\": \"RSA\", \"n\": \"nzyis1ZjfNB0bBgKFMSvvkTtwlvBsaJq7S5wA-kzeVOVpVWwkWdVha4s38XM_pa_yr47av7-z3VTmvDRyAHcaT92whREFpLv9cj5lTeJSibyr_Mrm_YtjCZVWgaOYIhwrXwKLqPr_11inWsAkfIytvHWTxZYEcXLgAXFuUuaS3uF9gEiNQwzGTU1v0FqkqTBr4B8nW3HCN47XUu0t8Y0e-lf4s4OxQawWD79J9_5d3Ry0vbV3Am1FtGJiJvOwRsIfVChDpYStTcHTCMqtvWbV6L11BWkpzGXSW4Hv43qa-GSYOD2QU68Mb59oSk2OB-BtOLpJofmbGEGgvmwyCI9Mw\", \"e\": \"AQAB\", \"alg\": \"RS256\", \"kid\": \"test\", \"use\": \"sig\" }";
   }
 
   private User getXMLUser(final String username, final String password) throws UserManagerException {
