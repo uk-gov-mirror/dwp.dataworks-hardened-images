@@ -5,7 +5,7 @@ RUN apk update && \
     apk add git bash
 
 WORKDIR /tmp
-RUN git clone --depth 1 --branch release-4.7.1 https://github.com/cloudera/hue.git
+RUN git clone --depth 1 --branch release-4.8.0 https://github.com/cloudera/hue.git
 
 WORKDIR /tmp/hue
 
