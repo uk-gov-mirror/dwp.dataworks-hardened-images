@@ -46,6 +46,8 @@ USER hue
 
 COPY hue-overrides.ini /tmp/
 COPY startup.sh ./startup.sh
+COPY settings.py /usr/share/hue/desktop/core/src/desktop/settings.py
+COPY middleware.py /usr/share/hue/desktop/core/src/desktop/middleware.py
 
 EXPOSE 8888
 
