@@ -44,10 +44,10 @@ WORKDIR /usr/share/hue
 
 USER hue
 
-COPY hue-overrides.ini /tmp/
-COPY startup.sh ./startup.sh
-COPY settings.py /usr/share/hue/desktop/core/src/desktop/settings.py
-COPY middleware.py /usr/share/hue/desktop/core/src/desktop/middleware.py
+COPY --chown=hue hue-overrides.ini /tmp/
+COPY --chown=hue startup.sh ./startup.sh
+COPY --chown=hue settings.py /usr/share/hue/desktop/core/src/desktop/settings.py
+COPY --chown=hue middleware.py /usr/share/hue/desktop/core/src/desktop/middleware.py
 
 EXPOSE 8888
 
