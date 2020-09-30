@@ -25,7 +25,9 @@ fusermount -u /mnt/tmp
     -o url=https://s3.amazonaws.com \
     -o use_sse=kmsid:${KMS_SHARED}
 
-chmod -R a-r /mnt/tmp/shared || true # || true Needed as this will fail if there are some files encrypted with a different KMS key
+
+mkdir -p /mnt/tmp/shared/${TEAM};
+chmod -R a-r /mnt/tmp/shared/${TEAM} || true # || true Needed as this will fail if there are some files encrypted with a different KMS key
 
 fusermount -u /mnt/tmp
 
@@ -39,20 +41,20 @@ nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/home/${USER} /mnt/s3fs/s3-home -f \
     -o ecs \
     -o endpoint=eu-west-2 \
     -o url=https://s3.amazonaws.com \
-    -o use_sse=kmsid:${KMS_HOME} &> /var/log/s3fs-home \
+    -o use_sse=kmsid:${KMS_HOME} \
     -o uid=1001 \
     -o umask=0033 \
-    &
+    &> /var/log/s3fs-home &
 
-nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/shared /mnt/s3fs/s3-shared -f \
+nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/shared/${TEAM} /mnt/s3fs/s3-shared -f \
     -o allow_other \
     -o ecs \
     -o endpoint=eu-west-2 \
     -o url=https://s3.amazonaws.com \
-    -o use_sse=kmsid:${KMS_SHARED} &> /var/log/s3fs-shared \
+    -o use_sse=kmsid:${KMS_SHARED} \
     -o uid=1001 \
     -o umask=0033 \
-    &
+    &> /var/log/s3fs-shared &
 
 cleanup() {
     echo "Container stopped, performing cleanup..."
