@@ -13,7 +13,7 @@ ENV PYTHON_VER=python3.8
 
 RUN apk add rsync make g++ python3=3.8.5-r0 python3-dev=3.8.5-r0 \
         mariadb mariadb-dev	libffi-dev krb5-dev openldap-dev \
-        libsasl sqlite-dev libxml2-dev libxslt-dev npm openssl
+        libsasl sqlite-dev libxml2-dev libxslt-dev npm
 
 
 RUN rm desktop/conf/* && \
@@ -35,7 +35,7 @@ RUN addgroup hue && \
     adduser --system --uid 1001 --no-create-home --ingroup hue hue && \
     chown -R hue /usr/share/hue
 
-RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt gettext
+RUN apk add python3=3.8.5-r0 libsasl libstdc++ krb5 libxslt gettext openssl
 
 # Install database connectors e.g.:
 # RUN ./build/env/bin/pip install git+https://github.com/gethue/PyHive
