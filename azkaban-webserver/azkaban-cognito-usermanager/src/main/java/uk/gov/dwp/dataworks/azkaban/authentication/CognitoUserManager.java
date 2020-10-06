@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
+import java.util.Arrays;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -265,7 +267,7 @@ public class CognitoUserManager implements UserManager {
       }
     }
   }
-
+  
   private User getCognitoUser(final String token) throws UserManagerException {
     DecodedJWT decodedToken = null;
     try {
@@ -294,7 +296,34 @@ public class CognitoUserManager implements UserManager {
     }
     Map<String, Claim> claims = decodedToken.getClaims();
     User user = null;
-    user = new User(claims.get("cognito:username").asString());
+    String username = null;
+    String salt = null;
+    List<String> groups = null;
+
+    if (claims.containsKey("sub")) {
+      salt = claims.get("sub").asString();
+    } else {
+      throw new UserManagerException("Missing sub element from token.");
+    }
+
+    if (claims.containsKey("preferred_username")) {
+      username = claims.get("preferred_username").asString();
+      username = username + salt.substring(0, 3);
+    } else if (claims.containsKey("cognito:username")) {
+      username = claims.get("cognito:username").asString();
+      username = username + salt.substring(0, 3);
+    } else {
+      throw new UserManagerException("Missing elements from token.");
+    }
+
+    if (claims.containsKey("cognito:groups")) {
+      groups = Arrays.asList(claims.get("cognito:groups").as(String[].class));
+    } else {
+      throw new UserManagerException("Missing groups element from token.");
+    }
+    
+    user = new User(username);
+    user.addGroup(groups.get(0));
     return user;
   }
 
