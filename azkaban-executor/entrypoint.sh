@@ -38,7 +38,7 @@ EOF
     fi
   fi
   if [ -n "${AWS_SESSION_TOKEN}" ]; then
-    sed -i -e "/aws_secret_access_key/a aws_session_token=${AWS_SESSION_TOKEN}" ~/.aws/credentials
+    sed -i -e "/aws_secret_access_key/aws_session_token=${AWS_SESSION_TOKEN}" ~/.aws/credentials
   fi
 else
   echo "INFO: Using attached IAM roles/instance profiles to authenticate with S3 as no AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY have been provided"
@@ -48,7 +48,7 @@ echo "INFO: Copying azkaban exec-server configuration file(s) from ${S3_URI} to 
 aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-exec-server/conf
 mv /azkaban-exec-server/conf/start-exec.sh /azkaban-exec-server/bin/start-exec.sh
 mv /azkaban-exec-server/conf/internal-start-executor.sh /azkaban-exec-server/bin/internal/internal-start-executor.sh
-mv /azkaban-exec-server/conf/commonprivate.properties /azkaban-exec-server/plugins/jobtypes/commonprivate.properties
+mv /azkaban-exec-server/conf/commonprivate.properties /azkaban-exec-server/plugins/jobtypes/emr/commonprivate.properties
 chmod +x /azkaban-exec-server/bin/start-exec.sh
 chmod +x /azkaban-exec-server/bin/internal/internal-start-executor.sh
 

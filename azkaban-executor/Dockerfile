@@ -4,9 +4,13 @@ ENV AZK_VERSION 3.81.0
 
 USER root
 
+COPY azkaban-emr-jobtype /tmp/azkaban-emr-jobtype
+
 RUN curl -k -LSs --output /tmp/azkaban.tar.gz https://github.com/azkaban/azkaban/archive/$AZK_VERSION.tar.gz && \
     tar -C /tmp -zoxf /tmp/azkaban.tar.gz && \
     /tmp/azkaban-$AZK_VERSION/gradlew -p /tmp/azkaban-$AZK_VERSION assemble && \
+    /tmp/azkaban-emr-jobtype/gradlew -p /tmp/azkaban-emr-jobtype assemble && \
+    mv /tmp/azkaban-emr-jobtype/build/libs/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar && \
     mv /tmp/azkaban-$AZK_VERSION/azkaban-exec-server/build/distributions/azkaban-exec-server-0.1.0-SNAPSHOT.tar.gz /tmp/azkaban-exec-server.tar.gz && \
     mv /tmp/azkaban-$AZK_VERSION/az-exec-util/src/main/c/execute-as-user.c /tmp/execute-as-user.c
 
@@ -24,6 +28,7 @@ RUN apk add --update --no-cache \
 FROM openjdk:8-alpine
 
 COPY --from=gradle-builder /tmp/azkaban-exec-server.tar.gz /tmp/azkaban-exec-server.tar.gz
+COPY --from=gradle-builder /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar
 COPY entrypoint.sh /bin/entrypoint.sh
 
 RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
@@ -34,7 +39,9 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
     jq && \
     tar -C /tmp -zoxf /tmp/azkaban-exec-server.tar.gz && \
     mv /tmp/azkaban-exec-server-0.1.0-SNAPSHOT /azkaban-exec-server && \
-    mkdir -p /azkaban-exec-server/plugins/jobtypes && \
+    mkdir -p /azkaban-exec-server/extlib && \
+    mv /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /azkaban-exec-server/extlib/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar && \
+    mkdir -p /azkaban-solo-server/plugins/jobtypes/emr && \
     chown -R nobody:nogroup /azkaban-exec-server && \
     chmod 755 /bin/entrypoint.sh
 
