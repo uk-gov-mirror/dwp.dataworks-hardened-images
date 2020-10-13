@@ -41,7 +41,7 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
     mv /tmp/azkaban-exec-server-0.1.0-SNAPSHOT /azkaban-exec-server && \
     mkdir -p /azkaban-exec-server/extlib && \
     mv /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /azkaban-exec-server/extlib/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar && \
-    mkdir -p /azkaban-solo-server/plugins/jobtypes/emr && \
+    mkdir -p /azkaban-exec-server/plugins/jobtypes/emr && \
     chown -R nobody:nogroup /azkaban-exec-server && \
     chmod 755 /bin/entrypoint.sh
 
