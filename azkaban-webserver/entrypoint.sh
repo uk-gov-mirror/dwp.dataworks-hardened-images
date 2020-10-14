@@ -50,7 +50,7 @@ if [ -n "$KEYSTORE_DATA" ]; then
   export KEYSTORE_URL='file:////store.jwk'
 fi
 
-SECRETS=$(aws secretsmanager get-secret-value --secret-id /concourse/dataworks/workflow_manager --query SecretBinary --output text | base64 -D )
+SECRETS=$(aws secretsmanager get-secret-value --secret-id /concourse/dataworks/workflow_manager --query SecretBinary --output text | base64 -d )
 PASS=$(echo $SECRETS | jq -r .keystore_password)
 
 /usr/bin/openssl req -x509 -newkey rsa:4096 -keyout $JAVA_HOME/jre/lib/security/key.pem -out $JAVA_HOME/jre/lib/security/cert.pem -days 30 -nodes -subj "/CN=azkaban"
