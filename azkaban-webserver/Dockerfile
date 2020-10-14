@@ -21,9 +21,13 @@ COPY --from=gradle-builder /tmp/azkaban-web-server.tar.gz /tmp/azkaban-web-serve
 COPY --from=gradle-builder /tmp/azkaban-db.tar.gz /tmp/azkaban-db.tar.gz
 COPY entrypoint.sh /bin/entrypoint.sh
 
-RUN apk add --update --no-cache \
+RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
+    apk upgrade --update-cache --available && \
+    apk add --update --no-cache \
     bash \
     mysql-client \
+    openssl \
+    jq \
     py3-pip && \
     pip3 install --upgrade pip && \
     pip3 install awscli && \

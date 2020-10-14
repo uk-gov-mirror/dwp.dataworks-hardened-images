@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+
 echo "INFO: Checking container configuration...."
 if [ -z "${AZKABAN_CONFIG_S3_BUCKET}" -o -z "${AZKABAN_CONFIG_S3_PREFIX}" ]; then
   echo "ERROR: AZKABAN_CONFIG_S3_BUCKET and AZKABAN_CONFIG_S3_PREFIX environment variables must be provided"
@@ -44,6 +45,15 @@ else
   echo "INFO: Using attached IAM roles/instance profiles to authenticate with S3 as no AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY have been provided"
 fi
 
+SECRETS=$(aws secretsmanager get-secret-value --secret-id /concourse/dataworks/workflow_manager --query SecretBinary --output text | base64 -D )
+PASS=$(echo $SECRETS | jq -r .keystore_password)
+
+/usr/bin/openssl req -x509 -newkey rsa:4096 -keyout $JAVA_HOME/jre/lib/security/key.pem -out $JAVA_HOME/jre/lib/security/cert.pem -days 30 -nodes -subj "/CN=azkaban"
+keytool -keystore /azkaban-exec-server/cacerts -storepass ${PASS} -noprompt -trustcacerts -importcert -alias self_signed -file $JAVA_HOME/jre/lib/security/cert.pem
+openssl req -new -key $JAVA_HOME/jre/lib/security/key.pem -subj "/CN=azkaban" -out $JAVA_HOME/jre/lib/security/cert.csr
+openssl pkcs12 -inkey $JAVA_HOME/jre/lib/security/key.pem -in $JAVA_HOME/jre/lib/security/cert.pem -export -out /azkaban-exec-server/cacerts.pkcs12 -passout pass:${PASS}
+keytool -importkeystore -srckeystore /azkaban-exec-server/cacerts.pkcs12 -storepass ${PASS} -srcstorepass ${PASS} -srcstoretype PKCS12 -destkeystore /azkaban-exec-server/cacerts
+
 echo "INFO: Copying azkaban exec-server configuration file(s) from ${S3_URI} to /azkaban-exec-server/conf..."
 aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-exec-server/conf
 mv /azkaban-exec-server/conf/start-exec.sh /azkaban-exec-server/bin/start-exec.sh
@@ -52,6 +62,30 @@ mv /azkaban-exec-server/conf/commonprivate.properties /azkaban-exec-server/plugi
 mv /azkaban-exec-server/conf/private.properties /azkaban-exec-server/plugins/jobtypes/emr/private.properties
 chmod +x /azkaban-exec-server/bin/start-exec.sh
 chmod +x /azkaban-exec-server/bin/internal/internal-start-executor.sh
+
+while IFS='=' read -r prop val; do
+  case $prop in
+    jetty.password | jetty.keypassword | jetty.trustpassword)
+      val=$(echo $SECRETS | jq -r .keystore_password)
+      ;;
+    executor.port)
+      val=$(echo $SECRETS | jq -r .ports.azkaban_executor_port)
+      ;;
+    azkaban.webserver.url)
+      val="${val}:$(echo $SECRETS | jq -r .ports.azkaban_executor_port)"
+      ;;
+    mysql.database)
+      val=$(echo $SECRETS | jq -r .db_name)
+      ;;
+    mysql.user)
+      val=$(echo $SECRETS | jq -r .db_username)
+      ;;
+    mysql.password)
+      val=$(echo $SECRETS | jq -r .db_password)
+      ;;
+  esac
+  printf '%s\n' "$prop=$val"
+done < /azkaban-exec-server/conf/azkaban.properties > file.tmp && mv file.tmp /azkaban-exec-server/conf/azkaban.properties
 
 CREDS=$(aws sts assume-role --role-arn "$COGNITO_ROLE_ARN" --role-session-name EMR_Get_Users | jq .Credentials)
 export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r .AccessKeyId)

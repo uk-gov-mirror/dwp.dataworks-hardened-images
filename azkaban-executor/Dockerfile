@@ -36,6 +36,7 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
     apk add --update --no-cache \
     bash \
     aws-cli \
+    openssl \
     jq && \
     tar -C /tmp -zoxf /tmp/azkaban-exec-server.tar.gz && \
     mv /tmp/azkaban-exec-server-0.1.0-SNAPSHOT /azkaban-exec-server && \
