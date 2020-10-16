@@ -63,6 +63,8 @@ mv /azkaban-exec-server/conf/private.properties /azkaban-exec-server/plugins/job
 chmod +x /azkaban-exec-server/bin/start-exec.sh
 chmod +x /azkaban-exec-server/bin/internal/internal-start-executor.sh
 
+echo "INFO: Parsing secret and setting values"
+
 while IFS='=' read -r prop val; do
   case $prop in
     jetty.password | jetty.keypassword | jetty.trustpassword)
@@ -87,12 +89,18 @@ while IFS='=' read -r prop val; do
   printf '%s\n' "$prop=$val"
 done < /azkaban-exec-server/conf/azkaban.properties > file.tmp && mv file.tmp /azkaban-exec-server/conf/azkaban.properties
 
-CREDS=$(aws sts assume-role --role-arn "$COGNITO_ROLE_ARN" --role-session-name EMR_Get_Users | jq .Credentials)
+echo "INFO: Assuming role to read from cognito"
+
+CREDS=$(aws sts assume-role --endpoint-url "https://sts.eu-west-2.amazonaws.com" --role-arn "$COGNITO_ROLE_ARN" --role-session-name EMR_Get_Users | jq .Credentials)
 export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r .AccessKeyId)
 export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r .SecretAccessKey)
 export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r .SessionToken)
 
+echo "INFO: Fetching groups from cognito"
+
 COGNITO_GROUPS=$(aws cognito-idp list-groups --user-pool-id $USER_POOL_ID | jq -r .Groups[].GroupName)
+
+echo "INFO: Adding users onto container"
 
 for GROUP in $COGNITO_GROUPS; 
 do

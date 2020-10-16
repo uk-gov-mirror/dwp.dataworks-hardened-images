@@ -12,7 +12,8 @@ RUN curl -k -LSs --output /tmp/azkaban.tar.gz https://github.com/azkaban/azkaban
     /tmp/azkaban-emr-jobtype/gradlew -p /tmp/azkaban-emr-jobtype assemble && \
     mv /tmp/azkaban-emr-jobtype/build/libs/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar && \
     mv /tmp/azkaban-$AZK_VERSION/azkaban-exec-server/build/distributions/azkaban-exec-server-0.1.0-SNAPSHOT.tar.gz /tmp/azkaban-exec-server.tar.gz && \
-    mv /tmp/azkaban-$AZK_VERSION/az-exec-util/src/main/c/execute-as-user.c /tmp/execute-as-user.c
+    mv /tmp/azkaban-$AZK_VERSION/az-exec-util/src/main/c/execute-as-user.c /tmp/execute-as-user.c && \
+    mv /tmp/azkaban-$AZK_VERSION/azkaban-db/build/distributions/azkaban-db-0.1.0-SNAPSHOT.tar.gz /tmp/azkaban-db.tar.gz
 
 FROM openjdk:8-alpine AS binary-builder
 
@@ -28,6 +29,7 @@ RUN apk add --update --no-cache \
 FROM openjdk:8-alpine
 
 COPY --from=gradle-builder /tmp/azkaban-exec-server.tar.gz /tmp/azkaban-exec-server.tar.gz
+COPY --from=gradle-builder /tmp/azkaban-db.tar.gz /tmp/azkaban-db.tar.gz
 COPY --from=gradle-builder /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar
 COPY entrypoint.sh /bin/entrypoint.sh
 
@@ -36,10 +38,14 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
     apk add --update --no-cache \
     bash \
     aws-cli \
+    mysql-client \
     openssl \
+    curl \
     jq && \
     tar -C /tmp -zoxf /tmp/azkaban-exec-server.tar.gz && \
+    tar -C /tmp -zoxf /tmp/azkaban-db.tar.gz && \
     mv /tmp/azkaban-exec-server-0.1.0-SNAPSHOT /azkaban-exec-server && \
+    mv /tmp/azkaban-db-0.1.0-SNAPSHOT /azkaban-db && \
     mkdir -p /azkaban-exec-server/extlib && \
     mv /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /azkaban-exec-server/extlib/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar && \
     mkdir -p /azkaban-exec-server/plugins/jobtypes/emr && \

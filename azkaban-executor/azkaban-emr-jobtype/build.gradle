@@ -17,8 +17,10 @@ configurations {
 
 dependencies {
     compileOnly group: 'com.github.azkaban', name: 'azkaban', version: '3.81.0'
-    compile group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.11.878'
-    extraLibs group: 'com.amazonaws', name: 'aws-java-sdk', version: '1.11.878'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.878'
+    compile group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.11.878'
+    extraLibs group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.878'
+    extraLibs group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.11.878'
 }
 
 jar {

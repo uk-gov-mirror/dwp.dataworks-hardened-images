@@ -63,7 +63,6 @@ echo "INFO: Copying azkaban web-server configuration file(s) from ${S3_URI} to /
 aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-web-server/conf
 mv /azkaban-web-server/conf/start-web.sh /azkaban-web-server/bin/start-web.sh
 mv /azkaban-web-server/conf/internal-start-web.sh /azkaban-web-server/bin/internal/internal-start-web.sh
-mv /azkaban-web-server/conf/commonprivate.properties /azkaban-web-server/plugins/jobtypes/commonprivate.properties
 chmod +x /azkaban-web-server/bin/start-web.sh
 chmod +x /azkaban-web-server/bin/internal/internal-start-web.sh
 
