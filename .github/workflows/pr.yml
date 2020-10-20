@@ -1,0 +1,30 @@
+name: PR
+
+on: pull_request
+
+jobs:
+  docker-build-and-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        image: [prom-pushgateway, guacd, hue, azkaban-executor, azkaban-webserver, s3fs]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: marceloprado/has-changed-path@v1
+        id: has-changed
+        with:
+          paths: ${{ matrix.image }}/**
+      - name: Build Docker image
+        if: steps.has-changed.outputs.changed == 'true'
+        run: docker build -t dwpdigital/${{ matrix.image }}:latest ./${{ matrix.image }}/
+      - name: Run Snyk to check image for high vulnerabilities
+        if: steps.has-changed.outputs.changed == 'true'
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: dwpdigital/${{ matrix.image }}
+          args: --file=${{ matrix.image }}/Dockerfile --severity-threshold=high --exclude-base-image-vulns --org=dwp-dataworks
