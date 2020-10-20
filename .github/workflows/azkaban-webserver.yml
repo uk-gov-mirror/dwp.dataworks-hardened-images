@@ -1,9 +1,9 @@
-name: Master
+name: Azkaban Webserver Master
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - '*'
     paths:
     - 'azkaban-webserver/**'
 
@@ -18,37 +18,13 @@ jobs:
     steps:
       - name: Get publish version
         id: get-publish-version
-        run: |
-          LATEST_VERSION=$(curl --silent "https://api.github.com/repos/${{ github.repository }}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          [  -z "$LATEST_VERSION" ] && LATEST_VERSION="0.0.0"
-          VERSION=$(echo $LATEST_VERSION | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
-          echo "::set-output name=publish-version::${VERSION}"
-
-  publish-github-release:
-    runs-on: ubuntu-latest
-    needs: [get-publish-version, publish-docker]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@master
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.get-publish-version.outputs.publish-version }}
-          release_name: Release ${{ needs.get-publish-version.outputs.publish-version }}
-          draft: false
-          prerelease: false
+        run: echo "::set-output name=publish-version::${GITHUB_REF#refs/tags/}"
 
   publish-docker:
     runs-on: ubuntu-latest
     needs: get-publish-version
     steps:
       - uses: actions/checkout@master
-      - name: Get release version
-        id: get_version
-        run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
       - name: Publish to DockerHub
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
