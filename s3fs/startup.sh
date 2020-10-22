@@ -45,7 +45,9 @@ nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/home/${USER} /mnt/s3fs/s3-home -f \
     -o url=https://s3.amazonaws.com \
     -o use_sse=kmsid:${KMS_HOME} \
     -o uid=1001 \
-    -o umask=0033 \
+    -o use_cache=/tmp/${USER}-cache \
+    -o del_cache \
+    -o enable_noobj_cache \
     &> /var/log/s3fs-home &
 
 nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/shared/${TEAM} /mnt/s3fs/s3-shared -f \
@@ -55,7 +57,6 @@ nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/shared/${TEAM} /mnt/s3fs/s3-shared -
     -o url=https://s3.amazonaws.com \
     -o use_sse=kmsid:${KMS_SHARED} \
     -o uid=1001 \
-    -o umask=0033 \
     &> /var/log/s3fs-shared &
 
 cleanup() {
