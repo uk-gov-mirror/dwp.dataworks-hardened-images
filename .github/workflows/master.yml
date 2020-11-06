@@ -86,4 +86,4 @@ jobs:
         with:
           command: monitor
           image: dwpdigital/${{ matrix.image }}
-          args: --file=${{ matrix.image }}/Dockerfile --org=dwp-dataworks
+          args: --file=${{ matrix.image }}/Dockerfile --policy-path=./.snyk --org=dwp-dataworks

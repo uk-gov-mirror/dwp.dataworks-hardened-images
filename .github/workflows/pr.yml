@@ -27,4 +27,4 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: dwpdigital/${{ matrix.image }}
-          args: --file=${{ matrix.image }}/Dockerfile --severity-threshold=high --exclude-base-image-vulns --org=dwp-dataworks
+          args: --file=${{ matrix.image }}/Dockerfile --policy-path=./.snyk --severity-threshold=high --exclude-base-image-vulns --org=dwp-dataworks

@@ -51,7 +51,12 @@ if [ -n "$KEYSTORE_DATA" ]; then
 fi
 
 SECRETS=$(aws secretsmanager get-secret-value --secret-id /concourse/dataworks/workflow_manager --query SecretBinary --output text | base64 -d )
+DB_SECRETS=$(aws secretsmanager get-secret-value --secret-id azkaban-webserver-rds-password --query SecretString --output text)
 PASS=$(echo $SECRETS | jq -r .keystore_password)
+export DB_NAME=$(echo $DB_SECRETS | jq -r .dbInstanceIdentifier)
+export DB_HOST=$(echo $DB_SECRETS | jq -r .host)
+export DB_USERNAME=$(echo $DB_SECRETS | jq -r .username)
+export DB_PASSWORD=$(echo $DB_SECRETS | jq -r .password)
 
 /usr/bin/openssl req -x509 -newkey rsa:4096 -keyout $JAVA_HOME/jre/lib/security/key.pem -out $JAVA_HOME/jre/lib/security/cert.pem -days 30 -nodes -subj "/CN=azkaban"
 keytool -keystore /azkaban-web-server/cacerts -storepass ${PASS} -noprompt -trustcacerts -importcert -alias self_signed -file $JAVA_HOME/jre/lib/security/cert.pem
@@ -75,13 +80,13 @@ while IFS='=' read -r prop val; do
       val=$(echo $SECRETS | jq -r .ports.azkaban_webserver_port)
       ;;
     mysql.database)
-      val=$(echo $SECRETS | jq -r .db_name)
+      val=$DB_NAME
       ;;
     mysql.user)
-      val=$(echo $SECRETS | jq -r .db_username)
+      val=$DB_USERNAME
       ;;
     mysql.password)
-      val=$(echo $SECRETS | jq -r .db_password)
+      val=$DB_PASSWORD
       ;;
   esac
   printf '%s\n' "$prop=$val"

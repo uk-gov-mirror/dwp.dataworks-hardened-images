@@ -141,9 +141,9 @@ public class EMRStep extends AbstractProcessJob {
 
     String clusterId = getClusterId(emr);
 
-    ArrayList<String> args = new ArrayList<String>();
-    args.add(this.getJobProps().getString(COMMAND));
+    ArrayList<String> args = retrieveScript(this.getJobProps().getString(COMMAND));
     args.add(getUserGroup(effectiveUser));
+    args.add(retrieveScriptArguments(this.getJobProps().getString(COMMAND)));
 
     StepFactory stepFactory = new StepFactory();
 
@@ -159,6 +159,24 @@ public class EMRStep extends AbstractProcessJob {
 
     // Get the output properties from this job.
     generateProperties(propFiles[1]);
+  }
+
+  private String retrieveScriptArguments(String command) {
+    if (command.contains(" ")) {
+      String[] parts = command.split(" ");
+      String[] scriptArgsArray = Arrays.copyOfRange(parts, 1, parts.length);
+      return String.join(" ", scriptArgsArray);
+    } else { 
+      return "";
+    }
+  }
+
+  private ArrayList<String> retrieveScript(String command) {
+    if (command.contains(" ")) {
+      return new ArrayList<String>(Arrays.asList(command.split(" ")[0]));
+    } else {
+      return new ArrayList<String>(Arrays.asList(command));
+    }
   }
 
   protected String getClusterId(AmazonElasticMapReduce emr) {
@@ -290,10 +308,10 @@ public class EMRStep extends AbstractProcessJob {
         try {
           String line = groupsReader.readLine();
           String [] tokens = line.split(":");
-          groupName = tokens[0];
           if(tokens.length > 3) {
             for(String uStr: tokens[3].split(",")) {
               if (uStr.equals(user)) {
+                groupName = tokens[0];
                 break;
               }
             }
