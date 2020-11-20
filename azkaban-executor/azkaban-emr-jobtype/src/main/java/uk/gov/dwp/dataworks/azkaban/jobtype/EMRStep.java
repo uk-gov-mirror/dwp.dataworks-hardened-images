@@ -68,6 +68,8 @@ public class EMRStep extends AbstractProcessJob {
   private static final String CREATE_FILE = "touch";
   private static final int SUCCESSFUL_EXECUTION = 0;
   private static final String TEMP_FILE_NAME = "user_can_write";
+  private static final int MAX_STEPS = 256;
+  private static final int POLL_INTERVAL = 10000;
 
   private final CommonMetrics commonMetrics;
   private volatile AzkabanProcess process;
@@ -140,6 +142,8 @@ public class EMRStep extends AbstractProcessJob {
 			.build();
 
     String clusterId = getClusterId(emr);
+
+    configureCluster(emr, clusterId);
 
     ArrayList<String> args = retrieveScript(this.getJobProps().getString(COMMAND));
     args.add(getUserGroup(effectiveUser));
@@ -361,5 +365,29 @@ public class EMRStep extends AbstractProcessJob {
 
   public String getPath() {
     return Utils.ifNull(this.getJobPath(), "");
+  }
+
+  private void configureCluster(AmazonElasticMapReduce emr, String clusterId) {
+    DescribeClusterResult clusterDetails = emr.describeCluster(new DescribeClusterRequest().withClusterId(clusterId));
+    if (clusterDetails.getCluster().getStepConcurrencyLevel() != MAX_STEPS) {
+      // Post Startup Implementation details here.
+      // We may still be initializing, so wait until we are waiting for steps.
+      // Potentially maybe other executors listening, so check step concurrency also.
+      while(! clusterDetails.getCluster().getStatus().getState().equals("WAITING")) {
+        info("Waiting for state WAITING...current state is " + clusterDetails.getCluster().getStatus().getState());
+        try {
+          Thread.sleep(POLL_INTERVAL);
+        } catch (Exception e) {
+          warn("Sleep interrupted");
+        }
+        clusterDetails = emr.describeCluster(new DescribeClusterRequest().withClusterId(clusterId));
+      }
+
+      if (clusterDetails.getCluster().getStepConcurrencyLevel() != MAX_STEPS) {
+        ModifyClusterResult modifyResult = emr.modifyCluster(new ModifyClusterRequest().withClusterId(clusterId)
+                .withStepConcurrencyLevel(MAX_STEPS));
+        // Add additional setup here.
+      }
+    }
   }
 }

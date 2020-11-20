@@ -33,7 +33,7 @@ COPY --from=gradle-builder /tmp/azkaban-db.tar.gz /tmp/azkaban-db.tar.gz
 COPY --from=gradle-builder /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar
 COPY entrypoint.sh /bin/entrypoint.sh
 
-RUN sed -i -e 's/v[[:digit:]]\..*\//edge\//g' /etc/apk/repositories && \
+RUN sed -i -e 's/v[[:digit:]]\..*\//v3.12\//g' /etc/apk/repositories && \
     apk upgrade --update-cache --available && \
     apk add --update --no-cache \
     bash \
