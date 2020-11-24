@@ -2,7 +2,9 @@ plugins {
     id 'java'
 }
 
-sourceCompatibility = 1.8
+compileJava {
+    sourceCompatibility = 1.8
+}
 
 repositories {
     mavenCentral()
@@ -16,11 +18,20 @@ configurations {
 }
 
 dependencies {
-    compileOnly group: 'com.github.azkaban', name: 'azkaban', version: '3.81.0'
-    compile group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.878'
-    compile group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.11.878'
-    extraLibs group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.878'
-    extraLibs group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.11.878'
+    implementation "com.github.azkaban:azkaban:${azkabanVersion}"
+    implementation "com.amazonaws:aws-java-sdk-core:${awsVersion}"
+    implementation "com.amazonaws:aws-java-sdk-emr:${awsVersion}"
+    implementation "com.amazonaws:aws-java-sdk-lambda:${awsVersion}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter:5.4.2'
+
+    extraLibs "com.amazonaws:aws-java-sdk-core:${awsVersion}"
+    extraLibs "com.amazonaws:aws-java-sdk-emr:${awsVersion}"
+    extraLibs "com.amazonaws:aws-java-sdk-lambda:${awsVersion}"
+}
+
+test {
+    useJUnitPlatform()
 }
 
 jar {

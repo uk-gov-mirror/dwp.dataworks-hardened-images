@@ -1,49 +1,37 @@
 package uk.gov.dwp.dataworks.azkaban.jobtype;
 
-import static azkaban.Constants.ConfigurationKeys.AZKABAN_SERVER_GROUP_NAME;
-import static azkaban.Constants.ConfigurationKeys.AZKABAN_SERVER_NATIVE_LIB_FOLDER;
-import static azkaban.ServiceProvider.SERVICE_PROVIDER;
-
 import azkaban.Constants;
 import azkaban.Constants.JobProperties;
 import azkaban.flow.CommonJobProperties;
 import azkaban.jobExecutor.AbstractProcessJob;
 import azkaban.jobExecutor.utils.process.AzkabanProcess;
-import azkaban.jobExecutor.utils.process.AzkabanProcessBuilder;
 import azkaban.metrics.CommonMetrics;
 import azkaban.utils.ExecuteAsUser;
 import azkaban.utils.Pair;
 import azkaban.utils.Props;
-import azkaban.utils.SystemMemoryInfo;
 import azkaban.utils.Utils;
-import com.google.common.annotations.VisibleForTesting;
-import java.nio.charset.StandardCharsets;
-import java.io.File;
-import java.nio.file.Files;
-import java.io.BufferedWriter;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.Scanner;
-import java.util.Collection;
-import org.apache.log4j.Logger;
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
 import com.amazonaws.services.elasticmapreduce.model.*;
 import com.amazonaws.services.elasticmapreduce.util.StepFactory;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
+import com.amazonaws.services.lambda.invoke.LambdaInvokerFactory;
+import org.apache.log4j.Logger;
+import uk.gov.dwp.dataworks.lambdas.EMRConfiguration;
+import uk.gov.dwp.dataworks.lambdas.EMRLauncher;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static azkaban.Constants.ConfigurationKeys.AZKABAN_SERVER_GROUP_NAME;
+import static azkaban.Constants.ConfigurationKeys.AZKABAN_SERVER_NATIVE_LIB_FOLDER;
+import static azkaban.ServiceProvider.SERVICE_PROVIDER;
 
 
 /**
@@ -70,6 +58,10 @@ public class EMRStep extends AbstractProcessJob {
   private static final String TEMP_FILE_NAME = "user_can_write";
   private static final int MAX_STEPS = 256;
   private static final int POLL_INTERVAL = 10000;
+  private static final String BOOT_POLL_INTERVAL = "emr.boot.poll.interval";
+  private static final int BOOT_POLL_INTERVAL_DEFAULT = 300000; /* 5 mins */
+  private static final String BOOT_POLL_ATTEMPTS_MAX = "emr.boot.poll.attempts.max";
+  private static final int BOOT_POLL_ATTEMPTS_MAX_DEFAULT = 5;
 
   private final CommonMetrics commonMetrics;
   private volatile AzkabanProcess process;
@@ -185,19 +177,53 @@ public class EMRStep extends AbstractProcessJob {
 
   protected String getClusterId(AmazonElasticMapReduce emr) {
     String clusterId = null;
-    ListClustersRequest clustersRequest = getClusterRequest();
-    ListClustersResult clustersResult = emr.listClusters(clustersRequest);
-    List<ClusterSummary> clusters = clustersResult.getClusters();
-    for (ClusterSummary cluster : clusters) {
-      if (cluster.getName().equals(this.getSysProps().getString(AWS_EMR_CLUSTER_NAME))) {
-        clusterId = cluster.getId();
+    boolean invokedLambda = false;
+
+    int pollTime = this.getSysProps().getInt(BOOT_POLL_INTERVAL, BOOT_POLL_INTERVAL_DEFAULT);
+    int maxAttempts = this.getSysProps().getInt(BOOT_POLL_ATTEMPTS_MAX, BOOT_POLL_ATTEMPTS_MAX_DEFAULT);
+
+    while(clusterId == null && maxAttempts > 0) {
+      ListClustersRequest clustersRequest = getClusterRequest();
+      ListClustersResult clustersResult = emr.listClusters(clustersRequest);
+      List<ClusterSummary> clusters = clustersResult.getClusters();
+      for (ClusterSummary cluster : clusters) {
+        if (cluster.getName().equals(this.getSysProps().getString(AWS_EMR_CLUSTER_NAME))) {
+          clusterId = cluster.getId();
+        }
+      }
+
+      if (clusterId == null && !invokedLambda) {
+        info("Starting up cluster");
+        final EMRLauncher launcher = LambdaInvokerFactory.builder()
+                .lambdaClient(AWSLambdaClientBuilder.defaultClient())
+                .build(EMRLauncher.class);
+
+        EMRConfiguration batchConfig = EMRConfiguration.builder().withName(AWS_EMR_CLUSTER_NAME).build();
+        launcher.LaunchBatchEMR(batchConfig);
+        invokedLambda = true;
+      }
+
+      if (clusterId == null) {
+        maxAttempts--;
+        try {
+          Thread.sleep(pollTime);
+        } catch (Exception e) {
+          warn("Sleep interrupted");
+        }
       }
     }
+
+    if (clusterId == null) {
+      throw new IllegalStateException("No batch EMR cluster available");
+    }
+
     return clusterId;
   }
 
   private ListClustersRequest getClusterRequest() {
     Collection<String> clusterStates = new ArrayList<String>();
+    clusterStates.add("STARTING");
+    clusterStates.add("BOOTSTRAPPING");
     clusterStates.add("WAITING");
     clusterStates.add("RUNNING");
     ListClustersRequest clustersRequest = new ListClustersRequest();
@@ -320,8 +346,8 @@ public class EMRStep extends AbstractProcessJob {
               }
             }
           }
-        } catch (Exception e) { 
-          continue; 
+        } catch (Exception e) {
+          continue;
         }
       }
       groupsReader.close();
