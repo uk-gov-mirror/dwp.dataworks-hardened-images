@@ -1,7 +1,6 @@
 package uk.gov.dwp.dataworks.lambdas;
 
 import com.amazonaws.util.json.Jackson;
-import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +18,6 @@ class EMRConfigurationTest {
         EMRConfiguration test = EMRConfiguration.builder().withName("test_name").build();
 
         String event = Jackson.toJsonString(test);
-        assertEquals("{'overrides':{'name':'test_name'}}".replaceAll("'", "\""), event);
+        assertEquals("{'overrides':{'Name':'test_name'}}".replaceAll("'", "\""), event);
     }
 }

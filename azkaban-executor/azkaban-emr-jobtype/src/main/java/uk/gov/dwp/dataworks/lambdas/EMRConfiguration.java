@@ -1,5 +1,7 @@
 package uk.gov.dwp.dataworks.lambdas;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 public class EMRConfiguration {
     private Overrides overrides;
 
@@ -35,6 +37,8 @@ public class EMRConfiguration {
         public Overrides(String name) {
             this.name = name;
         }
+
+        @JsonProperty("Name")
         public String getName() {
             return this.name;
         }
