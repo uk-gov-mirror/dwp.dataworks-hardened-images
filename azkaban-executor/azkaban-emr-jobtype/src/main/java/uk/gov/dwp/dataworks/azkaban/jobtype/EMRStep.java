@@ -11,12 +11,15 @@ import azkaban.utils.Pair;
 import azkaban.utils.Props;
 import azkaban.utils.Utils;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
 import com.amazonaws.services.elasticmapreduce.model.*;
 import com.amazonaws.services.elasticmapreduce.util.StepFactory;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.lambda.invoke.LambdaInvokerFactory;
+import com.amazonaws.services.logs.AWSLogsClient;
+import com.amazonaws.services.logs.model.*;
 import org.apache.log4j.Logger;
 import uk.gov.dwp.dataworks.lambdas.EMRConfiguration;
 import uk.gov.dwp.dataworks.lambdas.EMRLauncher;
@@ -45,6 +48,8 @@ public class EMRStep extends AbstractProcessJob {
   public static final String AWS_EMR_STEP_SCRIPT = "aws.emr.step.script";
   public static final String AWS_EMR_STEP_NAME = "aws.emr.step.name";
   public static final String AZKABAN_MEMORY_CHECK = "azkaban.memory.check";
+  public static final String AWS_LOG_GROUP_NAME = "aws.log.group.name";
+  public static final String AWS_REGION = "aws.region";
   // Use azkaban.Constants.ConfigurationKeys.AZKABAN_SERVER_NATIVE_LIB_FOLDER instead
   @Deprecated
   public static final String NATIVE_LIB_FOLDER = "azkaban.native.lib";
@@ -129,8 +134,10 @@ public class EMRStep extends AbstractProcessJob {
 
     this.logJobProperties();
 
+    String awsRegion = this.getSysProps().getString(AWS_REGION, "eu-west-2");
+
     AmazonElasticMapReduce emr = AmazonElasticMapReduceClientBuilder.standard()
-			.withRegion(Regions.EU_WEST_2)
+			.withRegion(awsRegion)
 			.build();
 
     String clusterId = getClusterId(emr);
@@ -145,7 +152,7 @@ public class EMRStep extends AbstractProcessJob {
 
     StepConfig runBashScript = new StepConfig()
         .withName(this.getSysProps().getString(AWS_EMR_STEP_NAME)) 
-        .withHadoopJarStep(new StepFactory("eu-west-2.elasticmapreduce")
+        .withHadoopJarStep(new StepFactory(awsRegion + ".elasticmapreduce")
           .newScriptRunnerStep(this.getSysProps().getString(AWS_EMR_STEP_SCRIPT), args.toArray(new String[args.size()])))
         .withActionOnFailure("CONTINUE");
 
@@ -153,8 +160,57 @@ public class EMRStep extends AbstractProcessJob {
 		  .withJobFlowId(clusterId)
 		  .withSteps(runBashScript));
 
+    AWSLogsClient logsClient = new AWSLogsClient().withRegion(RegionUtils.getRegion(awsRegion));
+
+    String logGroupName = this.getSysProps().getString(AWS_LOG_GROUP_NAME, "/aws/emr/azkaban");
+
+    boolean stepCompleted = false;
+
+    String sequenceToken = "";
+
+    GetLogEventsRequest getLogEventsRequest = new GetLogEventsRequest()
+      .withLogGroupName(logGroupName)
+      .withLogStreamName(result.getStepIds().get(0))
+      .withStartFromHead(true);
+
+    while(! stepCompleted) {
+      Thread.sleep(POLL_INTERVAL);
+
+      stepCompleted = isStepCompleted(emr, clusterId, result.getStepIds().get(0));
+
+      try {
+        GetLogEventsResult logResult = logsClient.getLogEvents(getLogEventsRequest);
+        printLogs(logResult);
+        getLogEventsRequest = new GetLogEventsRequest()
+          .withLogGroupName(logGroupName)
+          .withLogStreamName(result.getStepIds().get(0))
+          .withNextToken(logResult.getNextForwardToken());
+      } catch(AWSLogsException e) {
+        info("Waiting for logs to become available");
+      }
+    }
+
     // Get the output properties from this job.
     generateProperties(propFiles[1]);
+  }
+
+  private void printLogs(GetLogEventsResult logResult) {
+    for (OutputLogEvent event : logResult.getEvents()) {
+      info(event.getMessage());
+    }
+  }
+
+  private boolean isStepCompleted(AmazonElasticMapReduce emr, String clusterId, String stepId) {
+    ListStepsResult steps = emr.listSteps(new ListStepsRequest().withClusterId(clusterId));
+    for (StepSummary step : steps.getSteps()) {
+      if (step.getId().equals(stepId)) {
+        return (step.getStatus().getState().equals("COMPLETED") 
+          || step.getStatus().getState().equals("FAILED") 
+          || step.getStatus().getState().equals("CANCELLED"));
+      }
+    }
+    error("Failed to find step with ID: " + stepId);
+    return false;
   }
 
   private String retrieveScriptArguments(String command) {

@@ -22,12 +22,14 @@ dependencies {
     implementation "com.amazonaws:aws-java-sdk-core:${awsVersion}"
     implementation "com.amazonaws:aws-java-sdk-emr:${awsVersion}"
     implementation "com.amazonaws:aws-java-sdk-lambda:${awsVersion}"
+    implementation "com.amazonaws:aws-java-sdk-logs:${awsVersion}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter:5.4.2'
 
     extraLibs "com.amazonaws:aws-java-sdk-core:${awsVersion}"
     extraLibs "com.amazonaws:aws-java-sdk-emr:${awsVersion}"
     extraLibs "com.amazonaws:aws-java-sdk-lambda:${awsVersion}"
+    extraLibs "com.amazonaws:aws-java-sdk-logs:${awsVersion}"
 }
 
 test {
@@ -40,4 +42,3 @@ jar {
         configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
-
