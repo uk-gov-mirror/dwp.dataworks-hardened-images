@@ -31,6 +31,8 @@ FROM openjdk:8-alpine
 COPY --from=gradle-builder /tmp/azkaban-exec-server.tar.gz /tmp/azkaban-exec-server.tar.gz
 COPY --from=gradle-builder /tmp/azkaban-db.tar.gz /tmp/azkaban-db.tar.gz
 COPY --from=gradle-builder /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar /tmp/azkaban-emr-jobtype-1.0.0-SNAPSHOT.jar
+
+COPY log4j.properties /azkaban-exec-server/conf/log4j.properties
 COPY entrypoint.sh /bin/entrypoint.sh
 
 RUN sed -i -e 's/v[[:digit:]]\..*\//v3.12\//g' /etc/apk/repositories && \
@@ -53,5 +55,6 @@ RUN sed -i -e 's/v[[:digit:]]\..*\//v3.12\//g' /etc/apk/repositories && \
     chmod 755 /bin/entrypoint.sh
 
 COPY --from=binary-builder /tmp/execute-as-user /azkaban-exec-server/execute-as-user
+
 
 ENTRYPOINT [ "/bin/entrypoint.sh" ]

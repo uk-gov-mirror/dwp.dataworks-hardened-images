@@ -16,14 +16,19 @@ import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
 import com.amazonaws.services.elasticmapreduce.model.*;
 import com.amazonaws.services.elasticmapreduce.util.StepFactory;
+import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.lambda.invoke.LambdaInvokerFactory;
+import com.amazonaws.services.lambda.model.InvokeRequest;
+import com.amazonaws.services.lambda.model.InvokeResult;
 import com.amazonaws.services.logs.AWSLogsClient;
 import com.amazonaws.services.logs.model.*;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.apache.log4j.Logger;
 import uk.gov.dwp.dataworks.lambdas.EMRConfiguration;
 import uk.gov.dwp.dataworks.lambdas.EMRLauncher;
 
+import javax.ws.rs.core.Response;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -250,13 +255,35 @@ public class EMRStep extends AbstractProcessJob {
 
       if (clusterId == null && !invokedLambda) {
         info("Starting up cluster");
+        /*
         final EMRLauncher launcher = LambdaInvokerFactory.builder()
                 .lambdaClient(AWSLambdaClientBuilder.defaultClient())
                 .build(EMRLauncher.class);
 
         EMRConfiguration batchConfig = EMRConfiguration.builder().withName(AWS_EMR_CLUSTER_NAME).build();
         launcher.LaunchBatchEMR(batchConfig);
-        invokedLambda = true;
+        */
+        EMRConfiguration batchConfig = EMRConfiguration.builder().withName(AWS_EMR_CLUSTER_NAME).build();
+
+        try {
+          String payload = new ObjectMapper().writeValueAsString(batchConfig);
+
+          AWSLambda client = AWSLambdaClientBuilder.defaultClient();
+          InvokeRequest req = new InvokeRequest()
+                  .withFunctionName("aws_analytical_env_emr_launcher")
+                  .withPayload(payload);
+
+          invokedLambda = true;
+
+          InvokeResult result = client.invoke(req);
+
+          if (result.getStatusCode() != Response.Status.OK.getStatusCode()) {
+            throw new IllegalStateException(result.getFunctionError());
+          }
+        } catch (IOException ex) {
+          throw new IllegalStateException(ex);
+        }
+
       }
 
       if (clusterId == null) {
