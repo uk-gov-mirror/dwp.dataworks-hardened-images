@@ -10,19 +10,23 @@ import azkaban.utils.ExecuteAsUser;
 import azkaban.utils.Pair;
 import azkaban.utils.Props;
 import azkaban.utils.Utils;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
 import com.amazonaws.services.elasticmapreduce.model.*;
 import com.amazonaws.services.elasticmapreduce.util.StepFactory;
+import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
-import com.amazonaws.services.lambda.invoke.LambdaInvokerFactory;
+import com.amazonaws.services.lambda.model.InvokeRequest;
+import com.amazonaws.services.lambda.model.InvokeResult;
 import com.amazonaws.services.logs.AWSLogsClient;
-import com.amazonaws.services.logs.model.*;
+import com.amazonaws.services.logs.model.AWSLogsException;
+import com.amazonaws.services.logs.model.GetLogEventsRequest;
+import com.amazonaws.services.logs.model.GetLogEventsResult;
+import com.amazonaws.services.logs.model.OutputLogEvent;
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
 import uk.gov.dwp.dataworks.lambdas.EMRConfiguration;
-import uk.gov.dwp.dataworks.lambdas.EMRLauncher;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -237,26 +241,42 @@ public class EMRStep extends AbstractProcessJob {
 
     int pollTime = this.getSysProps().getInt(BOOT_POLL_INTERVAL, BOOT_POLL_INTERVAL_DEFAULT);
     int maxAttempts = this.getSysProps().getInt(BOOT_POLL_ATTEMPTS_MAX, BOOT_POLL_ATTEMPTS_MAX_DEFAULT);
-
+    String clusterName = this.getSysProps().getString(AWS_EMR_CLUSTER_NAME);
     while(clusterId == null && maxAttempts > 0) {
       ListClustersRequest clustersRequest = getClusterRequest();
       ListClustersResult clustersResult = emr.listClusters(clustersRequest);
       List<ClusterSummary> clusters = clustersResult.getClusters();
       for (ClusterSummary cluster : clusters) {
-        if (cluster.getName().equals(this.getSysProps().getString(AWS_EMR_CLUSTER_NAME))) {
+        if (cluster.getName().equals(clusterName)) {
           clusterId = cluster.getId();
         }
       }
 
       if (clusterId == null && !invokedLambda) {
         info("Starting up cluster");
-        final EMRLauncher launcher = LambdaInvokerFactory.builder()
-                .lambdaClient(AWSLambdaClientBuilder.defaultClient())
-                .build(EMRLauncher.class);
+        EMRConfiguration batchConfig = EMRConfiguration.builder().withName(clusterName).build();
 
-        EMRConfiguration batchConfig = EMRConfiguration.builder().withName(AWS_EMR_CLUSTER_NAME).build();
-        launcher.LaunchBatchEMR(batchConfig);
+        String payload = "{}";
+
+        try {
+          payload = new ObjectMapper().writeValueAsString(batchConfig);
+        } catch (Exception e) {
+          error(e.getMessage());
+          throw new IllegalStateException(e);
+        }
+
+        AWSLambda client = AWSLambdaClientBuilder.defaultClient();
+        InvokeRequest req = new InvokeRequest()
+                  .withFunctionName("aws_analytical_env_emr_launcher")
+                  .withPayload(payload);
+
+        InvokeResult result = client.invoke(req);
         invokedLambda = true;
+
+        if (result.getStatusCode() != 200) {
+            error(result.getFunctionError());
+            throw new IllegalStateException(result.getFunctionError());
+        }
       }
 
       if (clusterId == null) {
