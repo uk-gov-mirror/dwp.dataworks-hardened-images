@@ -53,6 +53,8 @@ fi
 SECRETS=$(aws secretsmanager get-secret-value --secret-id /concourse/dataworks/workflow_manager --query SecretBinary --output text | base64 -d )
 DB_SECRETS=$(aws secretsmanager get-secret-value --secret-id azkaban-webserver-rds-password --query SecretString --output text)
 PASS=$(echo $SECRETS | jq -r .keystore_password)
+export AZK_MASTER_USER=$(echo $SECRETS | jq -r .azkaban_username)
+export AZK_MASTER_PWD=$(echo $SECRETS | jq -r .azkaban_password)
 export DB_NAME=$(echo $DB_SECRETS | jq -r .dbInstanceIdentifier)
 export DB_HOST=$(echo $DB_SECRETS | jq -r .host)
 export DB_USERNAME=$(echo $DB_SECRETS | jq -r .username)
@@ -70,6 +72,13 @@ mv /azkaban-web-server/conf/start-web.sh /azkaban-web-server/bin/start-web.sh
 mv /azkaban-web-server/conf/internal-start-web.sh /azkaban-web-server/bin/internal/internal-start-web.sh
 chmod +x /azkaban-web-server/bin/start-web.sh
 chmod +x /azkaban-web-server/bin/internal/internal-start-web.sh
+
+cat <<EOF > /azkaban-web-server/conf/azkaban-users.xml
+<azkaban-users>
+  <user groups="azkaban" password="${AZK_MASTER_PWD}" roles="admin" username="${AZK_MASTER_USER}"/>
+  <role name="admin" permissions="ADMIN"/>
+</azkaban-users>
+EOF
 
 while IFS='=' read -r prop val; do
   case $prop in
