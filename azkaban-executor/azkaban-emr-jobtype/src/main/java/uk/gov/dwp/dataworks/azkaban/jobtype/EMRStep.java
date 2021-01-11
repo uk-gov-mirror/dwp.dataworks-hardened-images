@@ -148,8 +148,8 @@ public class EMRStep extends AbstractProcessJob {
 
     configureCluster(emr, clusterId);
 
-    ArrayList<String> args = retrieveScript(this.getJobProps().getString(COMMAND));
-    args.add(getUserGroup(effectiveUser));
+    ArrayList<String> args = new ArrayList<>(Arrays.asList(getUserGroup(effectiveUser)));
+    args.addAll(retrieveScript(this.getJobProps().getString(COMMAND)));
     args.add(retrieveScriptArguments(this.getJobProps().getString(COMMAND)));
 
     StepFactory stepFactory = new StepFactory();
