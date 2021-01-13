@@ -87,6 +87,8 @@ public class EMRStep extends AbstractProcessJob {
 
   @Override
   public void run() throws Exception {
+    info("Running EMR Step...");
+
     try {
       resolveProps();
     } catch (final Exception e) {
@@ -177,6 +179,8 @@ public class EMRStep extends AbstractProcessJob {
       .withLogStreamName(result.getStepIds().get(0))
       .withStartFromHead(true);
 
+    info("Loop starting");
+
     while(! stepCompleted) {
       Thread.sleep(POLL_INTERVAL);
 
@@ -184,6 +188,7 @@ public class EMRStep extends AbstractProcessJob {
       stepCompleted = completionStatus.getFirst();
 
       if (stepCompleted && !completionStatus.getSecond().equals("COMPLETED")){
+        error(String.format("Step %s did not successfully complete. Reason: %s", result.getStepIds().get(0), completionStatus.getSecond()));
         throw new RuntimeException(
                 String.format("Step %s did not successfully complete. Reason: %s", result.getStepIds().get(0), completionStatus.getSecond())
         );
@@ -203,6 +208,8 @@ public class EMRStep extends AbstractProcessJob {
 
     // Get the output properties from this job.
     generateProperties(propFiles[1]);
+
+    info("EMR Step Complete");
   }
 
   private void printLogs(GetLogEventsResult logResult) {
