@@ -180,7 +180,14 @@ public class EMRStep extends AbstractProcessJob {
     while(! stepCompleted) {
       Thread.sleep(POLL_INTERVAL);
 
-      stepCompleted = isStepCompleted(emr, clusterId, result.getStepIds().get(0));
+      Pair<Boolean, String> completionStatus = getStepStatus(emr, clusterId, result.getStepIds().get(0));
+      stepCompleted = completionStatus.getFirst();
+
+      if (stepCompleted && completionStatus.getSecond() != "COMPLETED"){
+        throw new RuntimeException(
+                String.format("Step %s did not successfully complete. Reason: %s", result.getStepIds().get(0), completionStatus.getSecond())
+        );
+      }
 
       try {
         GetLogEventsResult logResult = logsClient.getLogEvents(getLogEventsRequest);
@@ -204,17 +211,21 @@ public class EMRStep extends AbstractProcessJob {
     }
   }
 
-  private boolean isStepCompleted(AmazonElasticMapReduce emr, String clusterId, String stepId) {
+  private Pair<Boolean, String> getStepStatus(AmazonElasticMapReduce emr, String clusterId, String stepId) {
     ListStepsResult steps = emr.listSteps(new ListStepsRequest().withClusterId(clusterId));
     for (StepSummary step : steps.getSteps()) {
       if (step.getId().equals(stepId)) {
-        return (step.getStatus().getState().equals("COMPLETED") 
-          || step.getStatus().getState().equals("FAILED") 
-          || step.getStatus().getState().equals("CANCELLED"));
+        return new Pair<>(
+                (
+                        step.getStatus().getState().equals("COMPLETED") ||
+                        step.getStatus().getState().equals("CANCELLED") ||
+                        step.getStatus().getState().equals("FAILED")
+                ),
+                step.getStatus().getState());
       }
     }
     error("Failed to find step with ID: " + stepId);
-    return false;
+    return new Pair<>(false, "");
   }
 
   private String retrieveScriptArguments(String command) {
