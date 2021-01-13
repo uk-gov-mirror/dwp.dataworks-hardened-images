@@ -1,7 +1,7 @@
 FROM alpine:3.12.1 AS builder
 
 # Tagging to master to fix cache issue in 1.86 as 1.87 not buildable.
-ENV S3FS_VERSION master
+ENV S3FS_VERSION v1.88
 
 RUN apk update && apk upgrade && apk add git automake autoconf alpine-sdk fuse libxml2-dev fuse-dev curl-dev
 
