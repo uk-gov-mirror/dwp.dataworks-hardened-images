@@ -183,7 +183,7 @@ public class EMRStep extends AbstractProcessJob {
       Pair<Boolean, String> completionStatus = getStepStatus(emr, clusterId, result.getStepIds().get(0));
       stepCompleted = completionStatus.getFirst();
 
-      if (stepCompleted && completionStatus.getSecond() != "COMPLETED"){
+      if (stepCompleted && !completionStatus.getSecond().equals("COMPLETED")){
         throw new RuntimeException(
                 String.format("Step %s did not successfully complete. Reason: %s", result.getStepIds().get(0), completionStatus.getSecond())
         );
