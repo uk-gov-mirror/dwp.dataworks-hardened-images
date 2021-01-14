@@ -47,6 +47,7 @@ nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/home/${USER} /mnt/s3fs/s3-home -f \
     -o uid=1001 \
     -o use_cache=/tmp/${USER}-cache \
     -o enable_noobj_cache \
+    -o nocopyapi \
     &> /var/log/s3fs-home &
 
 nohup /opt/s3fs-fuse/bin/s3fs ${S3_BUCKET}:/shared/${TEAM} /mnt/s3fs/s3-shared -f \
