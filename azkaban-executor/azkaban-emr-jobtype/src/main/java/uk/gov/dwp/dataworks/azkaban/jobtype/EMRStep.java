@@ -77,6 +77,7 @@ public class EMRStep extends AbstractProcessJob {
   private volatile boolean killed = false;
   // For testing only. True if the job process exits successfully.
   private volatile boolean success;
+  private volatile List<String> stepIds;
 
   public EMRStep(final String jobId, final Props sysProps,
       final Props jobProps, final Logger log) {
@@ -166,17 +167,18 @@ public class EMRStep extends AbstractProcessJob {
 		  .withJobFlowId(clusterId)
 		  .withSteps(runBashScript));
 
+    stepIds = result.getStepIds();
+    String stepId = stepIds.get(0);
+
     AWSLogsClient logsClient = new AWSLogsClient().withRegion(RegionUtils.getRegion(awsRegion));
 
     String logGroupName = this.getSysProps().getString(AWS_LOG_GROUP_NAME, "/aws/emr/azkaban");
 
     boolean stepCompleted = false;
 
-    String sequenceToken = "";
-
     GetLogEventsRequest getLogEventsRequest = new GetLogEventsRequest()
       .withLogGroupName(logGroupName)
-      .withLogStreamName(result.getStepIds().get(0))
+      .withLogStreamName(stepId)
       .withStartFromHead(true);
 
     info("Loop starting");
@@ -184,13 +186,13 @@ public class EMRStep extends AbstractProcessJob {
     while(! stepCompleted) {
       Thread.sleep(POLL_INTERVAL);
 
-      Pair<Boolean, String> completionStatus = getStepStatus(emr, clusterId, result.getStepIds().get(0));
+      Pair<Boolean, String> completionStatus = getStepStatus(emr, clusterId, stepId);
       stepCompleted = completionStatus.getFirst();
 
       if (stepCompleted && !completionStatus.getSecond().equals("COMPLETED")){
-        error(String.format("Step %s did not successfully complete. Reason: %s", result.getStepIds().get(0), completionStatus.getSecond()));
+        error(String.format("Step %s did not successfully complete. Reason: %s", stepId, completionStatus.getSecond()));
         throw new RuntimeException(
-                String.format("Step %s did not successfully complete. Reason: %s", result.getStepIds().get(0), completionStatus.getSecond())
+                String.format("Step %s did not successfully complete. Reason: %s", stepId, completionStatus.getSecond())
         );
       }
 
@@ -199,7 +201,7 @@ public class EMRStep extends AbstractProcessJob {
         printLogs(logResult);
         getLogEventsRequest = new GetLogEventsRequest()
           .withLogGroupName(logGroupName)
-          .withLogStreamName(result.getStepIds().get(0))
+          .withLogStreamName(stepId)
           .withNextToken(logResult.getNextForwardToken());
       } catch(AWSLogsException e) {
         info("Waiting for logs to become available");
@@ -454,24 +456,31 @@ public class EMRStep extends AbstractProcessJob {
 
   @Override
   public void cancel() throws InterruptedException {
-    // in case the job is waiting
-    synchronized (this) {
-      this.killed = true;
-      this.notify();
-      if (this.process == null) {
-        // The job thread has not checked if the job is killed yet.
-        // setting the killed flag should be enough to abort the job.
-        // There is no job process to kill.
-        return;
-      }
-    }
-    this.process.awaitStartup();
-    final boolean processkilled = this.process
-        .softKill(KILL_TIME.toMillis(), TimeUnit.MILLISECONDS);
-    if (!processkilled) {
-      warn("Kill with signal TERM failed. Killing with KILL signal.");
-      this.process.hardKill();
-    }
+    String awsRegion = this.getSysProps().getString(AWS_REGION, "eu-west-2");
+
+    AmazonElasticMapReduce emr = AmazonElasticMapReduceClientBuilder.standard()
+			.withRegion(awsRegion)
+			.build();
+
+    String clusterId = getClusterId(emr);
+
+    info("Retrieved cluster with clusterId: " + clusterId);
+
+    String stepId = stepIds.get(0);
+    info("Requesting step to cancel with stepId: " + stepId);
+
+    ArrayList<String> steps = new ArrayList<String>();
+    steps.add(stepId);
+    emr.cancelSteps(getCancelStepsRequest(clusterId, steps));
+
+    info("EMR Step Cancel Requested");
+  }
+
+  private CancelStepsRequest getCancelStepsRequest(String clusterId, Collection<String> stepIds) {
+    CancelStepsRequest request = new CancelStepsRequest();
+    request.setClusterId(clusterId);
+    request.setStepIds(stepIds);
+    return request;
   }
 
   @Override
