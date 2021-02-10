@@ -149,6 +149,11 @@ public class EMRStep extends AbstractProcessJob {
 
     String clusterId = getClusterId(emr);
 
+    if (killed) {
+        info("Job has been killed so exiting run");
+        return;
+    }
+
     configureCluster(emr, clusterId);
 
     ArrayList<String> args = new ArrayList<>(Arrays.asList(getUserGroup(effectiveUser)));
@@ -167,8 +172,8 @@ public class EMRStep extends AbstractProcessJob {
 		  .withJobFlowId(clusterId)
 		  .withSteps(runBashScript));
 
-    stepIds = result.getStepIds();
-    String stepId = stepIds.get(0);
+    this.stepIds = result.getStepIds();
+    String stepId = this.stepIds.get(0);
 
     AWSLogsClient logsClient = new AWSLogsClient().withRegion(RegionUtils.getRegion(awsRegion));
 
@@ -185,6 +190,11 @@ public class EMRStep extends AbstractProcessJob {
 
     while(! stepCompleted) {
       Thread.sleep(POLL_INTERVAL);
+
+      if (killed) {
+          info("Stopping waiting for step to complete due to job being killed");
+          return;
+      }
 
       Pair<Boolean, String> completionStatus = getStepStatus(emr, clusterId, stepId);
       stepCompleted = completionStatus.getFirst();
@@ -262,7 +272,7 @@ public class EMRStep extends AbstractProcessJob {
     int pollTime = this.getSysProps().getInt(BOOT_POLL_INTERVAL, BOOT_POLL_INTERVAL_DEFAULT);
     int maxAttempts = this.getSysProps().getInt(BOOT_POLL_ATTEMPTS_MAX, BOOT_POLL_ATTEMPTS_MAX_DEFAULT);
     String clusterName = this.getSysProps().getString(AWS_EMR_CLUSTER_NAME);
-    while(clusterId == null && maxAttempts > 0) {
+    while(!killed && clusterId == null && maxAttempts > 0) {
       ListClustersRequest clustersRequest = getClusterRequest();
       ListClustersResult clustersResult = emr.listClusters(clustersRequest);
       List<ClusterSummary> clusters = clustersResult.getClusters();
@@ -309,7 +319,7 @@ public class EMRStep extends AbstractProcessJob {
       }
     }
 
-    if (clusterId == null) {
+    if (!killed && clusterId == null) {
       throw new IllegalStateException("No batch EMR cluster available");
     }
 
@@ -462,18 +472,42 @@ public class EMRStep extends AbstractProcessJob {
 			.withRegion(awsRegion)
 			.build();
 
-    String clusterId = getClusterId(emr);
+    String clusterId = null;
+    try {
+        clusterId = getClusterId(emr);
+    } catch (IllegalStateException e) {
+        info("No cluster found, killing job"); 
+        kill_job();
+        return;
+    }
 
+    if (clusterId == null) {
+        info("Cluster not returned, killing job"); 
+        kill_job();
+    }
     info("Retrieved cluster with clusterId: " + clusterId);
 
-    String stepId = stepIds.get(0);
+    String stepId = this.stepIds.get(0);
+    if (stepId == null) {
+        info("No step found, killing job"); 
+        kill_job();
+        return;
+    }
     info("Requesting step to cancel with stepId: " + stepId);
 
     ArrayList<String> steps = new ArrayList<String>();
     steps.add(stepId);
-    emr.cancelSteps(getCancelStepsRequest(clusterId, steps));
 
-    info("EMR Step Cancel Requested");
+    try {
+        emr.cancelSteps(getCancelStepsRequest(clusterId, steps));
+    } catch (IllegalStateException e) {
+        info("Error occurred killing job"); 
+        kill_job();
+        return;
+    }
+
+    info("EMR step requested to cancel");
+    kill_job();
   }
 
   private CancelStepsRequest getCancelStepsRequest(String clusterId, Collection<String> stepIds) {
@@ -481,6 +515,23 @@ public class EMRStep extends AbstractProcessJob {
     request.setClusterId(clusterId);
     request.setStepIds(stepIds);
     return request;
+  }
+
+  private void kill_job() throws InterruptedException  {
+    synchronized (this) {
+        this.killed = true;
+        this.notify();
+        if (this.process == null) {
+            return;
+        }
+    }
+    this.process.awaitStartup();
+    final boolean processkilled = this.process
+        .softKill(KILL_TIME.toMillis(), TimeUnit.MILLISECONDS);
+    if (!processkilled) {
+        warn("Kill with signal TERM failed. Killing with KILL signal.");
+        this.process.hardKill();
+    }
   }
 
   @Override
