@@ -466,6 +466,8 @@ public class EMRStep extends AbstractProcessJob {
 
   @Override
   public void cancel() throws InterruptedException {
+    set_job_to_killed();
+
     String awsRegion = this.getSysProps().getString(AWS_REGION, "eu-west-2");
 
     AmazonElasticMapReduce emr = AmazonElasticMapReduceClientBuilder.standard()
@@ -484,6 +486,7 @@ public class EMRStep extends AbstractProcessJob {
     if (clusterId == null) {
         info("Cluster not returned, killing job"); 
         kill_job();
+        return;
     }
     info("Retrieved cluster with clusterId: " + clusterId);
 
@@ -517,7 +520,7 @@ public class EMRStep extends AbstractProcessJob {
     return request;
   }
 
-  private void kill_job() throws InterruptedException  {
+  private void set_job_to_killed() throws InterruptedException  {
     synchronized (this) {
         this.killed = true;
         this.notify();
@@ -525,6 +528,9 @@ public class EMRStep extends AbstractProcessJob {
             return;
         }
     }
+  }
+
+  private void kill_job() throws InterruptedException  {
     this.process.awaitStartup();
     final boolean processkilled = this.process
         .softKill(KILL_TIME.toMillis(), TimeUnit.MILLISECONDS);
