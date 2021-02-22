@@ -187,6 +187,7 @@ public class EMRStep extends AbstractProcessJob {
       .withStartFromHead(true);
 
     info("Loop starting");
+    String lastToken="";
 
     while(! stepCompleted) {
       Thread.sleep(POLL_INTERVAL);
@@ -212,7 +213,30 @@ public class EMRStep extends AbstractProcessJob {
         getLogEventsRequest = new GetLogEventsRequest()
           .withLogGroupName(logGroupName)
           .withLogStreamName(stepId)
+          .withStartFromHead(true)
           .withNextToken(logResult.getNextForwardToken());
+        lastToken = logResult.getNextForwardToken();
+      } catch(AWSLogsException e) {
+        info("Waiting for logs to become available");
+      }
+    }
+
+    // Drain logs.
+    String nextToken = "";
+    while(!nextToken.equals(lastToken)) {
+      Thread.sleep(POLL_INTERVAL);
+
+      try {
+        GetLogEventsResult logResult = logsClient.getLogEvents(getLogEventsRequest);
+        printLogs(logResult);
+        getLogEventsRequest = new GetLogEventsRequest()
+          .withLogGroupName(logGroupName)
+          .withLogStreamName(stepId)
+          .withStartFromHead(true)
+          .withNextToken(lastToken);
+        
+        lastToken = nextToken;
+        nextToken = logResult.getNextForwardToken();
       } catch(AWSLogsException e) {
         info("Waiting for logs to become available");
       }
