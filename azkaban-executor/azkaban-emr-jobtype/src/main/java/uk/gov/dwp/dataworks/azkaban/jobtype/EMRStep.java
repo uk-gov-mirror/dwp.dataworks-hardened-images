@@ -223,28 +223,22 @@ public class EMRStep extends AbstractProcessJob {
 
     // Drain logs.
     String nextToken = "";
-    while(!nextToken.equals(lastToken) && !killed) {
-      Thread.sleep(POLL_INTERVAL);
 
-      try {
-        nextToken = lastToken;
+    try {
+      nextToken = lastToken;
 
-        getLogEventsRequest = new GetLogEventsRequest()
-          .withLogGroupName(logGroupName)
-          .withLogStreamName(stepId)
-          .withStartFromHead(true)
-          .withNextToken(nextToken);
+      getLogEventsRequest = new GetLogEventsRequest()
+              .withLogGroupName(logGroupName)
+              .withLogStreamName(stepId)
+              .withStartFromHead(true)
+              .withNextToken(nextToken);
 
-        GetLogEventsResult logResult = logsClient.getLogEvents(getLogEventsRequest);
-        printLogs(logResult);
+      GetLogEventsResult logResult = logsClient.getLogEvents(getLogEventsRequest);
+      printLogs(logResult);
 
-        lastToken = nextToken;
-        nextToken = logResult.getNextForwardToken();
-        
-      } catch(AWSLogsException e) {
-        info("Error reading logs: " + e.getErrorMessage());
-        nextToken = lastToken;
-      }
+    } catch(AWSLogsException e) {
+      info("Error reading logs: " + e.getErrorMessage());
+      nextToken = lastToken;
     }
 
     // Get the output properties from this job.
