@@ -254,20 +254,19 @@ public class EMRStep extends AbstractProcessJob {
   }
 
   private Pair<Boolean, String> getStepStatus(AmazonElasticMapReduce emr, String clusterId, String stepId) {
-    ListStepsResult steps = emr.listSteps(new ListStepsRequest().withClusterId(clusterId));
-    for (StepSummary step : steps.getSteps()) {
-      if (step.getId().equals(stepId)) {
-        return new Pair<>(
-                (
-                        step.getStatus().getState().equals("COMPLETED") ||
-                        step.getStatus().getState().equals("CANCELLED") ||
-                        step.getStatus().getState().equals("FAILED")
-                ),
-                step.getStatus().getState());
-      }
+    ListStepsResult steps = emr.listSteps(new ListStepsRequest().withClusterId(clusterId).withStepIds(Arrays.asList(stepId)));
+    if (steps.getSteps().size() == 1) {
+      StepSummary step = steps.getSteps().get(0);
+      String stepStatus = step.getStatus().getState();
+      ArrayList<String> expectedStatuses = new ArrayList<>(Arrays.asList("COMPLETED", "CANCELLED", "FAILED"));
+      return new Pair<>(
+        expectedStatuses.contains(stepStatus),
+        stepStatus
+      );
+    } else {
+      error("Failed to find step with ID: " + stepId);
+      return new Pair<>(true, "FAILED");
     }
-    error("Failed to find step with ID: " + stepId);
-    return new Pair<>(false, "");
   }
 
   private String retrieveScriptArguments(String command) {
