@@ -31,7 +31,7 @@ COPY --from=builder /usr/share/hue /usr/share/hue
 COPY --from=builder /tmp/hue/tools/docker/hue/conf3 /usr/share/hue/desktop/conf
 COPY --from=builder /tmp/hue/tools/docker/hue/startup.sh /usr/share/hue
 
-RUN addgroup hue && \
+RUN addgroup --gid 1001 hue && \
     adduser --system --uid 1001 --no-create-home --ingroup hue hue && \
     chown -R hue /usr/share/hue
 
