@@ -80,7 +80,7 @@ public class EMRStep extends AbstractProcessJob {
   private volatile List<String> stepIds;
 
   public EMRStep(final String jobId, final Props sysProps,
-      final Props jobProps, final Logger log) {
+                 final Props jobProps, final Logger log) {
     super(jobId, sysProps, jobProps, log);
     // TODO: reallocf fully guicify CommonMetrics through ProcessJob dependents
     this.commonMetrics = SERVICE_PROVIDER.getInstance(CommonMetrics.class);
@@ -106,11 +106,11 @@ public class EMRStep extends AbstractProcessJob {
 
     //Get list of users we never execute flows as. (ie: root, azkaban)
     final Set<String> blackListedUsers = new HashSet<>(
-        Arrays.asList(
-            this.getSysProps()
-                .getString(Constants.ConfigurationKeys.BLACK_LISTED_USERS, "root,azkaban")
-                .split(",")
-        )
+            Arrays.asList(
+                    this.getSysProps()
+                            .getString(Constants.ConfigurationKeys.BLACK_LISTED_USERS, "root,azkaban")
+                            .split(",")
+            )
     );
 
     // nativeLibFolder specifies the path for execute-as-user file,
@@ -122,7 +122,7 @@ public class EMRStep extends AbstractProcessJob {
       // Throw exception if Azkaban tries to run flow as a prohibited user
       if (blackListedUsers.contains(effectiveUser)) {
         throw new RuntimeException(
-            String.format("Not permitted to proxy as '%s' through Azkaban", effectiveUser)
+                String.format("Not permitted to proxy as '%s' through Azkaban", effectiveUser)
         );
       }
       // Set parent directory permissions to <uid>:azkaban so user can write in their execution directory
@@ -144,33 +144,36 @@ public class EMRStep extends AbstractProcessJob {
     String awsRegion = this.getSysProps().getString(AWS_REGION, "eu-west-2");
 
     AmazonElasticMapReduce emr = AmazonElasticMapReduceClientBuilder.standard()
-			.withRegion(awsRegion)
-			.build();
+            .withRegion(awsRegion)
+            .build();
 
     String clusterId = getClusterId(emr);
 
     if (killed) {
-        info("Job has been killed so exiting run");
-        return;
+      info("Job has been killed so exiting run");
+      return;
     }
 
     configureCluster(emr, clusterId);
 
-    ArrayList<String> args = new ArrayList<>(Arrays.asList(getUserGroup(effectiveUser)));
+    // Passing in the FLOW_UUID to be used as a correlation ID in EMR steps
+    ArrayList<String> args = new ArrayList<>();
+    args.add(this.getJobProps().getString(CommonJobProperties.FLOW_UUID));
+    args.add(getUserGroup(effectiveUser));
     args.addAll(retrieveScript(this.getJobProps().getString(COMMAND)));
     args.add(retrieveScriptArguments(this.getJobProps().getString(COMMAND)));
 
     StepFactory stepFactory = new StepFactory();
 
     StepConfig runBashScript = new StepConfig()
-        .withName(this.getSysProps().getString(AWS_EMR_STEP_NAME)) 
-        .withHadoopJarStep(new StepFactory(awsRegion + ".elasticmapreduce")
-          .newScriptRunnerStep(this.getSysProps().getString(AWS_EMR_STEP_SCRIPT), args.toArray(new String[args.size()])))
-        .withActionOnFailure("CONTINUE");
+            .withName(this.getSysProps().getString(AWS_EMR_STEP_NAME))
+            .withHadoopJarStep(new StepFactory(awsRegion + ".elasticmapreduce")
+                    .newScriptRunnerStep(this.getSysProps().getString(AWS_EMR_STEP_SCRIPT), args.toArray(new String[args.size()])))
+            .withActionOnFailure("CONTINUE");
 
     AddJobFlowStepsResult result = emr.addJobFlowSteps(new AddJobFlowStepsRequest()
-		  .withJobFlowId(clusterId)
-		  .withSteps(runBashScript));
+            .withJobFlowId(clusterId)
+            .withSteps(runBashScript));
 
     this.stepIds = result.getStepIds();
     String stepId = this.stepIds.get(0);
@@ -182,9 +185,9 @@ public class EMRStep extends AbstractProcessJob {
     boolean stepCompleted = false;
 
     GetLogEventsRequest getLogEventsRequest = new GetLogEventsRequest()
-      .withLogGroupName(logGroupName)
-      .withLogStreamName(stepId)
-      .withStartFromHead(true);
+            .withLogGroupName(logGroupName)
+            .withLogStreamName(stepId)
+            .withStartFromHead(true);
 
     info("Loop starting");
     String lastToken="";
@@ -193,8 +196,8 @@ public class EMRStep extends AbstractProcessJob {
       Thread.sleep(POLL_INTERVAL);
 
       if (killed) {
-          info("Stopping waiting for step to complete due to job being killed");
-          return;
+        info("Stopping waiting for step to complete due to job being killed");
+        return;
       }
 
       Pair<Boolean, String> completionStatus = getStepStatus(emr, clusterId, stepId);
@@ -211,10 +214,10 @@ public class EMRStep extends AbstractProcessJob {
         GetLogEventsResult logResult = logsClient.getLogEvents(getLogEventsRequest);
         printLogs(logResult);
         getLogEventsRequest = new GetLogEventsRequest()
-          .withLogGroupName(logGroupName)
-          .withLogStreamName(stepId)
-          .withStartFromHead(true)
-          .withNextToken(logResult.getNextForwardToken());
+                .withLogGroupName(logGroupName)
+                .withLogStreamName(stepId)
+                .withStartFromHead(true)
+                .withNextToken(logResult.getNextForwardToken());
         lastToken = logResult.getNextForwardToken();
       } catch(AWSLogsException e) {
         info("Waiting for logs to become available");
@@ -274,7 +277,7 @@ public class EMRStep extends AbstractProcessJob {
       String[] parts = command.split(" ");
       String[] scriptArgsArray = Arrays.copyOfRange(parts, 1, parts.length);
       return String.join(" ", scriptArgsArray);
-    } else { 
+    } else {
       return "";
     }
   }
@@ -319,15 +322,15 @@ public class EMRStep extends AbstractProcessJob {
 
         AWSLambda client = AWSLambdaClientBuilder.defaultClient();
         InvokeRequest req = new InvokeRequest()
-                  .withFunctionName("aws_analytical_env_emr_launcher")
-                  .withPayload(payload);
+                .withFunctionName("aws_analytical_env_emr_launcher")
+                .withPayload(payload);
 
         InvokeResult result = client.invoke(req);
         invokedLambda = true;
 
         if (result.getStatusCode() != 200) {
-            error(result.getFunctionError());
-            throw new IllegalStateException(result.getFunctionError());
+          error(result.getFunctionError());
+          throw new IllegalStateException(result.getFunctionError());
         }
       }
 
@@ -376,7 +379,7 @@ public class EMRStep extends AbstractProcessJob {
       effectiveUser = jobProps.getString(CommonJobProperties.SUBMIT_USER);
     } else {
       throw new RuntimeException(
-          "Internal Error: No user.to.proxy or submit.user in the jobProps");
+              "Internal Error: No user.to.proxy or submit.user in the jobProps");
     }
     info("effective user is: " + effectiveUser);
     return effectiveUser;
@@ -392,11 +395,11 @@ public class EMRStep extends AbstractProcessJob {
    * @return true if user has write permissions in current working directory otherwise false
    */
   private boolean canWriteInCurrentWorkingDirectory(final String effectiveUser)
-      throws IOException {
+          throws IOException {
     final ExecuteAsUser executeAsUser = new ExecuteAsUser(
-        this.getSysProps().getString(AZKABAN_SERVER_NATIVE_LIB_FOLDER));
+            this.getSysProps().getString(AZKABAN_SERVER_NATIVE_LIB_FOLDER));
     final List<String> checkIfUserCanWriteCommand = Arrays
-        .asList(CREATE_FILE, getWorkingDirectory() + "/" + TEMP_FILE_NAME);
+            .asList(CREATE_FILE, getWorkingDirectory() + "/" + TEMP_FILE_NAME);
     final int result = executeAsUser.execute(effectiveUser, checkIfUserCanWriteCommand);
     return result == SUCCESSFUL_EXECUTION;
   }
@@ -411,17 +414,17 @@ public class EMRStep extends AbstractProcessJob {
    * @param fileName the name of the file whose permissions will be changed
    */
   private void assignUserFileOwnership(final String effectiveUser, final String fileName) throws
-      Exception {
+          Exception {
     final ExecuteAsUser executeAsUser = new ExecuteAsUser(
-        this.getSysProps().getString(AZKABAN_SERVER_NATIVE_LIB_FOLDER));
+            this.getSysProps().getString(AZKABAN_SERVER_NATIVE_LIB_FOLDER));
     final String groupName = this.getSysProps().getString(AZKABAN_SERVER_GROUP_NAME, "azkaban");
     final List<String> changeOwnershipCommand = Arrays
-        .asList(CHOWN, effectiveUser + ":" + groupName, fileName);
+            .asList(CHOWN, effectiveUser + ":" + groupName, fileName);
     info("Change ownership of " + fileName + " to " + effectiveUser + ":" + groupName + ".");
     final int result = executeAsUser.execute("root", changeOwnershipCommand);
     if (result != 0) {
       handleError("Failed to change current working directory ownership. Error code: " + Integer
-          .toString(result), null);
+              .toString(result), null);
     }
   }
 
@@ -493,30 +496,30 @@ public class EMRStep extends AbstractProcessJob {
     String awsRegion = this.getSysProps().getString(AWS_REGION, "eu-west-2");
 
     AmazonElasticMapReduce emr = AmazonElasticMapReduceClientBuilder.standard()
-			.withRegion(awsRegion)
-			.build();
+            .withRegion(awsRegion)
+            .build();
 
     String clusterId = null;
     try {
-        clusterId = getClusterId(emr);
+      clusterId = getClusterId(emr);
     } catch (IllegalStateException e) {
-        info("No cluster found, killing job"); 
-        kill_job();
-        return;
+      info("No cluster found, killing job");
+      kill_job();
+      return;
     }
 
     if (clusterId == null) {
-        info("Cluster not returned, killing job"); 
-        kill_job();
-        return;
+      info("Cluster not returned, killing job");
+      kill_job();
+      return;
     }
     info("Retrieved cluster with clusterId: " + clusterId);
 
     String stepId = this.stepIds.get(0);
     if (stepId == null) {
-        info("No step found, killing job"); 
-        kill_job();
-        return;
+      info("No step found, killing job");
+      kill_job();
+      return;
     }
     info("Requesting step to cancel with stepId: " + stepId);
 
@@ -524,11 +527,11 @@ public class EMRStep extends AbstractProcessJob {
     steps.add(stepId);
 
     try {
-        emr.cancelSteps(getCancelStepsRequest(clusterId, steps));
+      emr.cancelSteps(getCancelStepsRequest(clusterId, steps));
     } catch (IllegalStateException e) {
-        info("Error occurred killing job"); 
-        kill_job();
-        return;
+      info("Error occurred killing job");
+      kill_job();
+      return;
     }
 
     info("EMR step requested to cancel");
@@ -544,21 +547,21 @@ public class EMRStep extends AbstractProcessJob {
 
   private void set_job_to_killed() throws InterruptedException  {
     synchronized (this) {
-        this.killed = true;
-        this.notify();
-        if (this.process == null) {
-            return;
-        }
+      this.killed = true;
+      this.notify();
+      if (this.process == null) {
+        return;
+      }
     }
   }
 
   private void kill_job() throws InterruptedException  {
     this.process.awaitStartup();
     final boolean processkilled = this.process
-        .softKill(KILL_TIME.toMillis(), TimeUnit.MILLISECONDS);
+            .softKill(KILL_TIME.toMillis(), TimeUnit.MILLISECONDS);
     if (!processkilled) {
-        warn("Kill with signal TERM failed. Killing with KILL signal.");
-        this.process.hardKill();
+      warn("Kill with signal TERM failed. Killing with KILL signal.");
+      this.process.hardKill();
     }
   }
 
