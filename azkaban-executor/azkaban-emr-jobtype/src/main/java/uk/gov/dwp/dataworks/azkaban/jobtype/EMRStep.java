@@ -296,7 +296,8 @@ public class EMRStep extends AbstractProcessJob {
 
     int pollTime = this.getSysProps().getInt(BOOT_POLL_INTERVAL, BOOT_POLL_INTERVAL_DEFAULT);
     int maxAttempts = this.getSysProps().getInt(BOOT_POLL_ATTEMPTS_MAX, BOOT_POLL_ATTEMPTS_MAX_DEFAULT);
-    String clusterName = this.getSysProps().getString(AWS_EMR_CLUSTER_NAME);
+    String clusterName = this.getJobProps().getString( AWS_EMR_CLUSTER_NAME, this.getSysProps().getString(AWS_EMR_CLUSTER_NAME));
+
     while(!killed && clusterId == null && maxAttempts > 0) {
       ListClustersRequest clustersRequest = getClusterRequest();
       ListClustersResult clustersResult = emr.listClusters(clustersRequest);

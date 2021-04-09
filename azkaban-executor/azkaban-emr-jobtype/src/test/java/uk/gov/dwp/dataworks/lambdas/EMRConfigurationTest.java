@@ -1,8 +1,10 @@
 package uk.gov.dwp.dataworks.lambdas;
 
-import com.amazonaws.util.json.Jackson;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,10 +16,10 @@ class EMRConfigurationTest {
     }
 
     @Test
-    public void hasCorrectJsonStructure() {
+    public void hasCorrectJsonStructure() throws IOException {
         EMRConfiguration test = EMRConfiguration.builder().withName("test_name").build();
-
-        String event = Jackson.toJsonString(test);
+        ObjectMapper mapper = new ObjectMapper();
+        String event = mapper.writeValueAsString(test);
         assertEquals("{'overrides':{'Name':'test_name'}}".replaceAll("'", "\""), event);
     }
 }
