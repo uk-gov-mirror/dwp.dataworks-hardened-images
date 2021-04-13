@@ -45,8 +45,21 @@ else
   echo "INFO: Using attached IAM roles/instance profiles to authenticate with S3 as no AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY have been provided"
 fi
 
-SECRETS=$(aws secretsmanager get-secret-value --secret-id /concourse/dataworks/workflow_manager --query SecretBinary --output text | base64 -d )
-DB_SECRETS=$(aws secretsmanager get-secret-value --secret-id azkaban-executor-rds-password --query SecretString --output text)
+echo "INFO: Copying azkaban exec-server configuration file(s) from ${S3_URI} to /azkaban-exec-server/conf..."
+aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-exec-server/conf
+mv /azkaban-exec-server/conf/start-exec.sh /azkaban-exec-server/bin/start-exec.sh
+mv /azkaban-exec-server/conf/internal-start-executor.sh /azkaban-exec-server/bin/internal/internal-start-executor.sh
+mv /azkaban-exec-server/conf/commonprivate.properties /azkaban-exec-server/plugins/jobtypes/commonprivate.properties
+mv /azkaban-exec-server/conf/private.properties /azkaban-exec-server/plugins/jobtypes/emr/private.properties
+chmod +x /azkaban-exec-server/bin/start-exec.sh
+chmod +x /azkaban-exec-server/bin/internal/internal-start-executor.sh
+
+azkaban_secret_id="$(grep "aws.azkaban.secretid" /azkaban-exec-server/conf/azkaban.properties | sed 's|.*=||g')"
+rds_secret_id="$(grep "aws.rds.secretid" /azkaban-exec-server/conf/azkaban.properties | sed 's|.*=||g')"
+
+SECRETS=$(aws secretsmanager get-secret-value --secret-id $azkaban_secret_id --query SecretBinary --output text | base64 -d )
+DB_SECRETS=$(aws secretsmanager get-secret-value --secret-id $rds_secret_id --query SecretString --output text)
+
 PASS=$(echo $SECRETS | jq -r .keystore_password)
 export DB_NAME=$(echo $DB_SECRETS | jq -r .dbInstanceIdentifier)
 export DB_HOST=$(echo $DB_SECRETS | jq -r .host)
@@ -58,15 +71,6 @@ keytool -keystore /azkaban-exec-server/cacerts -storepass ${PASS} -noprompt -tru
 openssl req -new -key $JAVA_HOME/jre/lib/security/key.pem -subj "/CN=azkaban" -out $JAVA_HOME/jre/lib/security/cert.csr
 openssl pkcs12 -inkey $JAVA_HOME/jre/lib/security/key.pem -in $JAVA_HOME/jre/lib/security/cert.pem -export -out /azkaban-exec-server/cacerts.pkcs12 -passout pass:${PASS}
 keytool -importkeystore -srckeystore /azkaban-exec-server/cacerts.pkcs12 -storepass ${PASS} -srcstorepass ${PASS} -srcstoretype PKCS12 -destkeystore /azkaban-exec-server/cacerts
-
-echo "INFO: Copying azkaban exec-server configuration file(s) from ${S3_URI} to /azkaban-exec-server/conf..."
-aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-exec-server/conf
-mv /azkaban-exec-server/conf/start-exec.sh /azkaban-exec-server/bin/start-exec.sh
-mv /azkaban-exec-server/conf/internal-start-executor.sh /azkaban-exec-server/bin/internal/internal-start-executor.sh
-mv /azkaban-exec-server/conf/commonprivate.properties /azkaban-exec-server/plugins/jobtypes/commonprivate.properties
-mv /azkaban-exec-server/conf/private.properties /azkaban-exec-server/plugins/jobtypes/emr/private.properties
-chmod +x /azkaban-exec-server/bin/start-exec.sh
-chmod +x /azkaban-exec-server/bin/internal/internal-start-executor.sh
 
 echo "INFO: Parsing secret and setting values"
 
