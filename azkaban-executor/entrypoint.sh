@@ -54,8 +54,8 @@ mv /azkaban-exec-server/conf/private.properties /azkaban-exec-server/plugins/job
 chmod +x /azkaban-exec-server/bin/start-exec.sh
 chmod +x /azkaban-exec-server/bin/internal/internal-start-executor.sh
 
-AZKABAN_SECRET_ID="$(grep "aws.azkaban.secretid" /azkaban-web-server/conf/azkaban.properties | sed 's|.*=||g')"
-RDS_SECRET_ID="$(grep "aws.rds.secretid" /azkaban-web-server/conf/azkaban.properties | sed 's|.*=||g')"
+AZKABAN_SECRET_ID="$(grep "aws.azkaban.secretid" /azkaban-exec-server/conf/azkaban.properties | sed 's|.*=||g')"
+RDS_SECRET_ID="$(grep "aws.rds.secretid" /azkaban-exec-server/conf/azkaban.properties | sed 's|.*=||g')"
 
 if [ -z "${AZKABAN_SECRET_ID}" -o -z "${RDS_SECRET_ID}" ]; then
   echo "ERROR: The AZKABAN_SECRET_ID and RDS_SECRET_ID variables not set. Could not find in the azkaban.properties file"
