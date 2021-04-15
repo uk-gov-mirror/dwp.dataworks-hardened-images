@@ -50,8 +50,23 @@ if [ -n "$KEYSTORE_DATA" ]; then
   export KEYSTORE_URL='file:////store.jwk'
 fi
 
-SECRETS=$(aws secretsmanager get-secret-value --secret-id /concourse/dataworks/workflow_manager --query SecretBinary --output text | base64 -d )
-DB_SECRETS=$(aws secretsmanager get-secret-value --secret-id azkaban-webserver-rds-password --query SecretString --output text)
+echo "INFO: Copying azkaban web-server configuration file(s) from ${S3_URI} to /azkaban-web-server/conf..."
+aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-web-server/conf
+mv /azkaban-web-server/conf/start-web.sh /azkaban-web-server/bin/start-web.sh
+mv /azkaban-web-server/conf/internal-start-web.sh /azkaban-web-server/bin/internal/internal-start-web.sh
+chmod +x /azkaban-web-server/bin/start-web.sh
+chmod +x /azkaban-web-server/bin/internal/internal-start-web.sh
+
+AZKABAN_SECRET_ID="$(grep "aws.azkaban.secretid" /azkaban-web-server/conf/azkaban.properties | sed 's|.*=||g')"
+RDS_SECRET_ID="$(grep "aws.rds.secretid" /azkaban-web-server/conf/azkaban.properties | sed 's|.*=||g')"
+
+if [ -z "${AZKABAN_SECRET_ID}" -o -z "${RDS_SECRET_ID}" ]; then
+  echo "ERROR: The AZKABAN_SECRET_ID and RDS_SECRET_ID variables not set. Could not find in the azkaban.properties file"
+  exit 1
+fi
+
+SECRETS=$(aws secretsmanager get-secret-value --secret-id $AZKABAN_SECRET_ID --query SecretBinary --output text | base64 -d )
+DB_SECRETS=$(aws secretsmanager get-secret-value --secret-id $RDS_SECRET_ID --query SecretString --output text)
 PASS=$(echo $SECRETS | jq -r .keystore_password)
 export AZK_MASTER_USER=$(echo $SECRETS | jq -r .azkaban_username)
 export AZK_MASTER_PWD=$(echo $SECRETS | jq -r .azkaban_password)
@@ -65,13 +80,6 @@ keytool -keystore /azkaban-web-server/cacerts -storepass ${PASS} -noprompt -trus
 openssl req -new -key $JAVA_HOME/jre/lib/security/key.pem -subj "/CN=azkaban" -out $JAVA_HOME/jre/lib/security/cert.csr
 openssl pkcs12 -inkey $JAVA_HOME/jre/lib/security/key.pem -in $JAVA_HOME/jre/lib/security/cert.pem -export -out /azkaban-web-server/cacerts.pkcs12 -passout pass:${PASS}
 keytool -importkeystore -srckeystore /azkaban-web-server/cacerts.pkcs12 -storepass ${PASS} -srcstorepass ${PASS} -srcstoretype PKCS12 -destkeystore /azkaban-web-server/cacerts
-
-echo "INFO: Copying azkaban web-server configuration file(s) from ${S3_URI} to /azkaban-web-server/conf..."
-aws ${PROFILE_OPTION} s3 sync ${S3_URI}/${AZKABAN_ROLE} /azkaban-web-server/conf
-mv /azkaban-web-server/conf/start-web.sh /azkaban-web-server/bin/start-web.sh
-mv /azkaban-web-server/conf/internal-start-web.sh /azkaban-web-server/bin/internal/internal-start-web.sh
-chmod +x /azkaban-web-server/bin/start-web.sh
-chmod +x /azkaban-web-server/bin/internal/internal-start-web.sh
 
 cat <<EOF > /azkaban-web-server/conf/azkaban-users.xml
 <azkaban-users>
