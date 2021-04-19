@@ -12,7 +12,7 @@ RUN cd lua-openssl && \
     make clean
 
 
-FROM openresty/openresty:1.17.8.2-5-alpine
+FROM openresty/openresty:1.19.3.1-6-alpine
 
 RUN apk add openssl lua-dev
 
